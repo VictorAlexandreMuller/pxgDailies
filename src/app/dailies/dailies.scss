@@ -1,173 +1,230 @@
-.page {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 16px;
+:host {
+  display: block;
 }
 
-.topbar {
+/* ====== Navbar fixa ====== */
+.topbar-fixed {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1100px, calc(100% - 36px));
+  z-index: 50;
+
+  padding: 12px 14px;
+  border-radius: 18px;
+
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* brilho interno leve igual ao glass */
+.topbar-fixed::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  background: radial-gradient(
+    700px 220px at 30% 10%,
+    rgba(255, 255, 255, 0.18),
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+/* ====== Layout / Fundo ====== */
+.dailies-page {
+  min-height: 100vh;
+  position: relative;
   display: flex;
-  justify-content: space-between;
-  gap: 16px;
   align-items: flex-start;
-  padding: 12px 12px;
-  border: 1px solid #222;
-  border-radius: 10px;
-  margin-bottom: 14px;
-
-  h1 {
-    margin: 0;
-    font-size: 22px;
-  }
-
-  .sub {
-    margin-top: 6px;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    font-size: 13px;
-    opacity: 0.85;
-
-    code {
-      padding: 2px 6px;
-      border: 1px solid #333;
-      border-radius: 6px;
-    }
-
-    .dot {
-      opacity: 0.5;
-    }
-  }
-
-  .right {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: flex-end;
-  }
+  justify-content: center;
+  padding: 28px 18px;
+  color: #e9eef5;
+  z-index: 1;
 }
 
-button, .import-btn {
-  border: 1px solid #333;
-  background: transparent;
-  padding: 8px 10px;
-  border-radius: 8px;
+.bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+
+  background: url('/images/001.png') center / cover no-repeat;
+  filter: brightness(0.75) saturate(1.05);
+}
+
+.bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.35),
+    rgba(0, 0, 0, 0.55)
+  );
+}
+
+.shell {
+  width: min(1200px, 100%);
+  z-index: 1;
+  margin-top: 90px;
+}
+
+/* ====== Glass ====== */
+.glass {
+  position: relative;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  overflow: hidden;
+}
+
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: radial-gradient(
+    700px 220px at 30% 10%,
+    rgba(255, 255, 255, 0.18),
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+.glass-inner {
+  position: relative;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+/* ====== Botões (base) ====== */
+.btn {
+  height: 42px;
+  border-radius: 14px;
+  padding: 0 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.10);
+  color: #eef3fb;
+
   cursor: pointer;
-  font-size: 13px;
+  transition:
+    transform 120ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    opacity 160ms ease;
 }
 
-button.secondary {
-  opacity: 0.9;
+.btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.20);
 }
 
-button.danger {
-  border-color: #7a1d1d;
+.btn:active {
+  transform: translateY(0px);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn.ghost {
+  background: rgba(10, 14, 22, 0.22);
+}
+
+.btn.primary {
+  border-color: rgba(120, 200, 255, 0.35);
+  background: linear-gradient(
+    135deg,
+    rgba(120, 200, 255, 0.22),
+    rgba(255, 120, 190, 0.16)
+  );
+}
+
+.btn.primary:hover {
+  border-color: rgba(120, 200, 255, 0.55);
 }
 
 .import-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
 
   input[type='file'] {
     display: none;
   }
 }
 
-.import-error {
-  border: 1px solid #7a1d1d;
-  padding: 10px 12px;
-  border-radius: 10px;
-  margin-bottom: 12px;
-}
-
-.add {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 14px;
-
-  input {
-    flex: 1;
-    border: 1px solid #333;
-    background: transparent;
-    padding: 10px 12px;
-    border-radius: 10px;
-    font-size: 14px;
-  }
-}
-
-.list {
-  display: grid;
-  gap: 12px;
-}
-
-.card {
-  border: 1px solid #222;
-  border-radius: 12px;
-  padding: 12px;
-
-  .card-head {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: center;
-
-    h2 {
-      margin: 0;
-      font-size: 18px;
-    }
-  }
-}
-
-.columns {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 12px;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.col {
-  border: 1px solid #222;
-  border-radius: 10px;
-  padding: 10px;
-
-  h3 {
-    margin: 0 0 10px 0;
-    font-size: 14px;
-    opacity: 0.9;
-  }
-}
-
-.task {
+/* ====== Topbar ====== */
+.topbar {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: 14px;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.sub {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
   align-items: center;
-  padding: 6px 0;
+  font-size: 13px;
+  color: rgba(233, 238, 245, 0.75);
 
-  label {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    cursor: pointer;
-    user-select: none;
+  code {
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(10, 14, 22, 0.20);
   }
 
-  .done {
-    text-decoration: line-through;
-    opacity: 0.7;
+  .dot {
+    opacity: 0.6;
   }
+}
 
-  .link {
-    border: 0;
-    background: transparent;
-    padding: 0;
-    text-decoration: underline;
-    opacity: 0.7;
-  }
+.right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ====== Mensagens ====== */
+.error {
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(255, 80, 80, 0.12);
+  border: 1px solid rgba(255, 80, 80, 0.22);
+  color: rgba(255, 220, 220, 0.95);
+  font-size: 13px;
 }
 
 .muted {
@@ -176,8 +233,457 @@ button.danger {
 }
 
 .empty {
-  border: 1px dashed #333;
-  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.20);
+  border-radius: 16px;
   padding: 18px;
+  color: rgba(233, 238, 245, 0.85);
+}
+
+/* ====== Add boneco ====== */
+.add {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+
+  input {
+    flex: 1;
+    min-width: 220px;
+    height: 44px;
+    border-radius: 14px;
+    padding: 0 14px;
+    color: #eef3fb;
+
+    background: rgba(10, 14, 22, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    outline: none;
+
+    transition:
+      transform 120ms ease,
+      border-color 160ms ease,
+      background 160ms ease;
+  }
+
+  input::placeholder {
+    color: rgba(233, 238, 245, 0.45);
+  }
+
+  input:focus {
+    border-color: rgba(120, 200, 255, 0.55);
+    background: rgba(10, 14, 22, 0.45);
+    transform: translateY(-1px);
+  }
+}
+
+/* ====== Lista / Card ====== */
+.list {
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 14, 22, 0.18);
+  padding: 14px;
+}
+
+/* ====== Tabs ====== */
+.tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 2px 12px 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  margin-bottom: 12px;
+}
+
+.tab {
+  height: 40px;
+  border-radius: 14px;
+  padding: 0 10px 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(233, 238, 245, 0.92);
+  cursor: pointer;
+
+  transition:
+    transform 120ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.tab:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.tab.active {
+  border-color: rgba(120, 200, 255, 0.40);
+  background: rgba(120, 200, 255, 0.12);
+}
+
+.tab-name {
+  font-weight: 700;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-delete {
+  width: 18px;
+  height: 18px;
+  opacity: 0.85;
+}
+
+.tab-character {
+  width: 18px;
+  height: 18px;
+  opacity: 0.85;
+}
+
+/* ====== Colunas ====== */
+.columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.col {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 12px;
+
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  h3 {
+    margin: 0;
+    font-size: 14px;
+    color: rgba(233, 238, 245, 0.85);
+  }
+}
+
+/* ====== Task Row ====== */
+.task-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(10, 14, 22, 0.22);
+  margin-bottom: 10px;
+}
+
+.task-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: rgba(233, 238, 245, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ====== Icon Buttons ====== */
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+
+  transition:
+    transform 120ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    opacity 160ms ease;
+}
+
+.icon-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.icon-btn img {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.icon-btn:disabled:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: none;
+}
+
+/* ====== Add Task Button ====== */
+.add-btn {
+  border-radius: 50%;
+  background: rgba(10, 14, 22, 0.25);
+}
+
+.add-btn img {
+  width: 18px;
+  height: 18px;
   opacity: 0.9;
+}
+
+.add-btn:hover {
+  background: rgba(120, 200, 255, 0.15);
+  border-color: rgba(120, 200, 255, 0.85);
+}
+
+.add-btn:active {
+  transform: translateY(0);
+}
+
+/* ====== Check Icon em CSS ====== */
+.check-btn .check-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  border-radius: 6px;
+  border: 2px solid rgba(233, 238, 245, 0.75);
+  background: rgba(10, 14, 22, 0.20);
+  position: relative;
+
+  transition:
+    transform 120ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    opacity 160ms ease;
+}
+
+.check-btn .check-icon::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border-right: 3px solid rgba(233, 238, 245, 0.95);
+  border-bottom: 3px solid rgba(233, 238, 245, 0.95);
+  transform: rotate(40deg);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.check-btn.on .check-icon {
+  border-color: rgba(120, 200, 255, 0.85);
+  background: rgba(120, 200, 255, 0.12);
+}
+
+.check-btn.on .check-icon::after {
+  opacity: 1;
+}
+
+/* ====== Estados ====== */
+.task-row.doing {
+  border-color: rgba(120, 200, 255, 0.35);
+  background: rgba(120, 200, 255, 0.08);
+}
+
+.task-row.done {
+  border-color: rgba(90, 200, 120, 0.55);
+  background: linear-gradient(
+    135deg,
+    rgba(90, 200, 120, 0.22),
+    rgba(90, 200, 120, 0.12)
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(90, 200, 120, 0.35),
+    0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.task-row.done .task-title {
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.task-row.done .check-icon {
+  border-color: rgba(90, 200, 120, 0.9);
+  background: rgba(90, 200, 120, 0.25);
+}
+
+.task-row.done .check-icon::after {
+  border-right-color: rgba(240, 255, 245, 0.95);
+  border-bottom-color: rgba(240, 255, 245, 0.95);
+}
+
+.task-row.done .icon-btn:disabled {
+  opacity: 0.25;
+}
+
+/* ====== Concluídas (accordion) ====== */
+.done-panel {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(10, 14, 22, 0.18);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.done-toggle {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  border: 0;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(233, 238, 245, 0.92);
+  cursor: pointer;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.done-toggle:hover {
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.caret {
+  display: inline-block;
+  font-size: 18px;
+  line-height: 1;
+  transform: rotate(0deg); /* fechado = > */
+  transition: transform 160ms ease;
+  opacity: 0.9;
+}
+
+.caret.open {
+  transform: rotate(90deg); /* aberto = v (na prática, vira "para baixo") */
+}
+
+.done-title {
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.done-count {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 14, 22, 0.20);
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.done-body {
+  padding: 12px;
+}
+
+/* deixa os itens concluídos mais “compactos” no painel */
+.done-body .task-row {
+  margin-bottom: 10px;
+}
+
+/* ====== CONCLUÍDAS (dentro do card do período) - verde militar com opacidade alta ====== */
+.done-panel.done-inside {
+  border-color: rgba(75, 83, 32, 0.85);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px rgba(75, 83, 32, 0.35);
+}
+
+/* ====== Modal Pergunta pós-focus ====== */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.confirm-card {
+  width: min(520px, 100%);
+  border-radius: 18px;
+  padding: 16px 16px 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 14, 22, 0.82);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+.confirm-title {
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.confirm-text {
+  font-size: 14px;
+  line-height: 1.35;
+  color: rgba(233, 238, 245, 0.92);
+  margin-bottom: 14px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* botão "Sim" com vibe verde militar */
+.confirm-yes {
+  border-color: rgba(75, 83, 32, 0.85);
+  background: rgba(75, 83, 32, 0.55);
+}
+
+.confirm-yes:hover {
+  background: rgba(75, 83, 32, 0.65);
+  border-color: rgba(75, 83, 32, 0.95);
 }

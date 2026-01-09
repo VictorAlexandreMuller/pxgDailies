@@ -1,9 +1,16 @@
 import { Task } from '../models/pxg-db.model';
 
+function make(period: Task['period'], title: string): Task {
+  return { id: crypto.randomUUID(), period, title };
+}
+
 export function defaultTasks(): Task[] {
   return [
-    { id: crypto.randomUUID(), title: 'Daily 1', period: 'daily' },
-    { id: crypto.randomUUID(), title: 'Weekly 1', period: 'weekly' },
-    { id: crypto.randomUUID(), title: 'Monthly 1', period: 'monthly' },
+    make('daily', 'NW Falkner/Bruno/Lorelay'),
+    make('daily', 'T1H Cosmic'),
+    
+    make('weekly', 'NW Misty'),
+
+    make('monthly', 'Clones'),
   ];
 }

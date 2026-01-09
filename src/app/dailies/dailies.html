@@ -1,79 +1,230 @@
-<div class="page" *ngIf="db as data; else loading">
-  <header class="topbar">
+<div class="dailies-page" *ngIf="db as data; else loading">
+  <div class="bg"></div>
+
+  <!-- NAVBAR FIXA -->
+  <header class="topbar topbar-fixed">
     <div class="left">
-      <h1>pxgDaily</h1>
+      <div class="title">PXG Dailies</div>
       <div class="sub">
-        <span><strong>Usuário:</strong> {{ data.profile.displayName }}</span>
+        <span><strong>Usuário: </strong>{{ data.profile.displayName }}</span>
         <span class="dot">•</span>
-        <span><strong>Sync Code:</strong> <code>{{ syncCode }}</code></span>
+        <span><strong>Sync Code: </strong><code>{{ syncCode }}</code></span>
       </div>
     </div>
 
     <div class="right">
-      <button type="button" (click)="exportJsonDownload()">Exportar (Download)</button>
-      <button type="button" (click)="exportJsonClipboard()">Exportar (Copiar)</button>
+      <button type="button" class="btn ghost" (click)="exportJsonDownload()">
+        Exportar (Download)
+      </button>
+      <button type="button" class="btn ghost" (click)="exportJsonClipboard()">
+        Exportar (Copiar)
+      </button>
 
-      <label class="import-btn">
+      <label class="btn ghost import-btn" title="Importar JSON">
         <input type="file" accept="application/json" (change)="onImportFileSelected($event)" />
         Importar JSON
       </label>
 
-      <button type="button" class="secondary" (click)="logout()">Sair</button>
+      <button type="button" class="btn primary" (click)="logout()">Sair</button>
     </div>
   </header>
 
-  <section class="import-error" *ngIf="importError">
-    {{ importError }}
-  </section>
+  <!-- CONTEÚDO (com espaçamento para não ficar por baixo da navbar) -->
+  <main class="shell">
+    <section class="glass">
+      <div class="glass-inner">
+        <section class="error" *ngIf="importError">
+          {{ importError }}
+        </section>
 
-  <section class="add">
-    <input
-      type="text"
-      placeholder="Nome do boneco (ex: Victor)"
-      [(ngModel)]="newCharacterName"
-      (keyup.enter)="addCharacter()"
-    />
-    <button type="button" (click)="addCharacter()">Adicionar Boneco</button>
-  </section>
+        <section class="add">
+          <input
+            type="text"
+            placeholder="Character name..."
+            [(ngModel)]="newCharacterName"
+            (keyup.enter)="addCharacter()"
+          />
+          <button type="button" class="btn" (click)="addCharacter()">Adicionar Boneco</button>
+        </section>
 
-  <section class="list" *ngIf="data.characters.length; else empty">
-    <article class="card" *ngFor="let c of data.characters">
-      <div class="card-head">
-        <h2>{{ c.name }}</h2>
-        <button type="button" class="danger" (click)="removeCharacter(c.id)">Remover</button>
-      </div>
+        <section class="list" *ngIf="data.characters.length; else empty">
+          <nav class="tabs">
+            <button
+              type="button"
+              class="tab"
+              *ngFor="let c of data.characters"
+              [class.active]="c.id === activeCharacterId"
+              (click)="selectCharacter(c.id)"
+            >
+              <img class="tab-character" src="/icons/character.png" alt="character" />
+              <span class="tab-name">{{ c.name }}</span>
 
-      <div class="columns">
-        <!-- ✅ agora sem cast -->
-        <div class="col" *ngFor="let p of periods">
-          <h3>{{ periodLabel(p) }}</h3>
+              <img
+                class="tab-delete"
+                src="/icons/delete.png"
+                alt="delete"
+                title="Remover boneco"
+                (click)="$event.stopPropagation(); removeCharacter(c.id)"
+              />
+            </button>
+          </nav>
 
-          <div class="task" *ngFor="let t of tasksOf(c, p)">
-            <label>
-              <input type="checkbox" [checked]="isDoneNow(t)" (change)="toggleTask(c.id, t.id)" />
-              <span [class.done]="isDoneNow(t)">{{ t.title }}</span>
-            </label>
+          <article class="card" *ngIf="activeCharacter as c">
+            <div class="columns">
+              <div class="col" *ngFor="let p of periods">
+                <div class="col-head">
+                  <h3>{{ periodLabel(p) }}</h3>
+                  <button
+                    type="button"
+                    class="icon-btn add-btn"
+                    (click)="addTask(c.id, p)"
+                    title="Adicionar task"
+                  >
+                    <img src="/icons/add2.png" alt="add" />
+                  </button>
+                </div>
 
-            <button type="button" class="link" (click)="resetTaskNow(c.id, t.id)">reset</button>
+                <!-- CONCLUÍDAS dentro do card do período (abaixo do título, acima das tasks) -->
+                <section class="done-panel done-inside" *ngIf="tasksOf(c, p).length">
+                  <button type="button" class="done-toggle" (click)="toggleDonePanel(p)">
+                    <span class="caret" [class.open]="donePanelOpen[p]">›</span>
+                    <span class="done-title">Concluídas</span>
+                    <span class="done-count">
+                      {{ doneTasksOfPeriod(c, p).length }}/{{ tasksOf(c, p).length }}
+                    </span>
+
+                  </button>
+
+                  <div class="done-body" *ngIf="donePanelOpen[p]">
+                    <div class="done-item" *ngFor="let t of doneTasksOfPeriod(c, p)">
+                      <div class="task-row done">
+                        <div class="task-title" [title]="t.title">{{ t.title }}</div>
+
+                        <div class="task-actions">
+                          <!-- desmarcar: volta para a coluna automaticamente -->
+                          <button
+                            type="button"
+                            class="icon-btn check-btn on"
+                            (click)="toggleDone(c.id, t.id)"
+                            title="Desmarcar"
+                          >
+                            <span class="check-icon" aria-hidden="true"></span>
+                          </button>
+
+                          <!-- opcional: manter editar/excluir também aqui -->
+                          <button
+                            type="button"
+                            class="icon-btn"
+                            (click)="editTask(c.id, t.id)"
+                            title="Editar"
+                          >
+                            <img src="/icons/edit.png" alt="edit" />
+                          </button>
+
+                          <button
+                            type="button"
+                            class="icon-btn"
+                            (click)="deleteTask(c.id, t.id)"
+                            title="Excluir"
+                          >
+                            <img src="/icons/delete.png" alt="delete" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- TASKS ABERTAS do período -->
+                <div class="task" *ngFor="let t of openTasksOf(c, p)">
+                  <div class="task-row" [class.done]="isDoneNow(t)" [class.doing]="isDoingNow(t)">
+                    <div class="task-title" [title]="t.title">{{ t.title }}</div>
+
+                    <div class="task-actions">
+                      <button
+                        type="button"
+                        class="icon-btn check-btn"
+                        [class.on]="isDoneNow(t)"
+                        (click)="toggleDone(c.id, t.id)"
+                        title="Feito"
+                      >
+                        <span class="check-icon" aria-hidden="true"></span>
+                      </button>
+
+                      <button
+                        type="button"
+                        class="icon-btn"
+                        (click)="startFocusCooldown(c.id, t)"
+                        title="Fazendo"
+                        [disabled]="isDoneNow(t) || isFocusCoolingDown(t.id)"
+                        [title]="isFocusCoolingDown(t.id) ? ('Cooldown: ' + (focusCooldownLeft(t.id)) + 's') : 'Fazendo'"
+                      >
+                        <img src="/icons/focus.png" alt="doing" />
+                      </button>
+
+                      <button
+                        type="button"
+                        class="icon-btn"
+                        (click)="editTask(c.id, t.id)"
+                        title="Editar"
+                      >
+                        <img src="/icons/edit.png" alt="edit" />
+                      </button>
+
+                      <button
+                        type="button"
+                        class="icon-btn"
+                        (click)="deleteTask(c.id, t.id)"
+                        title="Excluir"
+                      >
+                        <img src="/icons/delete.png" alt="delete" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="muted" *ngIf="openTasksOf(c, p).length === 0">Sem tasks.</div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <ng-template #empty>
+          <div class="empty">
+            Nenhum boneco cadastrado ainda. Clique em <strong>Adicionar Boneco</strong>.
           </div>
-
-          <div class="muted" *ngIf="tasksOf(c, p).length === 0">
-            Sem tasks.
-          </div>
-        </div>
+        </ng-template>
       </div>
-    </article>
-  </section>
+    </section>
+  </main>
+</div>
 
-  <ng-template #empty>
-    <div class="empty">
-      Nenhum boneco cadastrado ainda. Clique em <strong>Adicionar Boneco</strong>.
+<!-- ====== MODAL: Pergunta pós-focus ====== -->
+<div class="confirm-overlay" *ngIf="focusPromptOpen">
+  <div class="confirm-card">
+    <div class="confirm-title">Pergunta rápida</div>
+    <div class="confirm-text">
+      Você conseguiu concluir a task <strong>{{ focusPromptTaskTitle }}</strong>?
     </div>
-  </ng-template>
+
+    <div class="confirm-actions">
+      <button type="button" class="btn confirm-yes" (click)="confirmFocusResult(true)">
+        Sim, concluí
+      </button>
+      <button type="button" class="btn ghost" (click)="confirmFocusResult(false)">
+        Não
+      </button>
+    </div>
+  </div>
 </div>
 
 <ng-template #loading>
-  <div class="page">
-    Carregando...
+  <div class="dailies-page">
+    <div class="bg"></div>
+    <main class="shell">
+      <section class="glass floating">
+        <div class="glass-inner">Carregando...</div>
+      </section>
+    </main>
   </div>
 </ng-template>

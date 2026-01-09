@@ -27,4 +27,6 @@ export interface Task {
   title: string;
   period: Period;
   doneForKey?: string;
+  doingForKey?: string;
 }
+

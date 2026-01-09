@@ -2,25 +2,16 @@
   <div class="bg"></div>
 
   <main class="shell">
-    <header class="brand">
-      <div class="logo">pxg</div>
-      <div class="titles">
-        <h1>pxgDaily</h1>
-        <p>
-          Entre com seu nome e um Sync Code. Para usar em outro PC, exporte o JSON na tela de dailies e
-          importe lá.
-        </p>
-      </div>
-    </header>
-
     <section class="glass floating">
+      <header class="brand">
+        <div class="logo">PXG Dailies</div>
+      </header>
       <div class="glass-inner">
         <div class="fields">
           <label class="field">
-            <span>Seu nome</span>
             <input
               type="text"
-              placeholder="Ex: Victor"
+              placeholder="Nickname"
               [(ngModel)]="displayName"
               (keyup.enter)="enter()"
               autocomplete="nickname"
@@ -28,10 +19,9 @@
           </label>
 
           <label class="field">
-            <span>Sync Code</span>
             <input
               type="text"
-              placeholder="Ex: A9FQ"
+              placeholder="Sync Code"
               [(ngModel)]="syncCode"
               (keyup.enter)="enter()"
               autocomplete="off"
@@ -39,7 +29,7 @@
               maxlength="8"
             />
             <small class="hint">
-              Dica: guarde este código. Ele é a chave do seu registro neste navegador.
+              Este código é a sua chave do seu registro no navegador.
             </small>
           </label>
         </div>
@@ -63,11 +53,11 @@
         </div>
 
         <div class="footer">
-          <span class="pill">MVP local</span>
+          <span class="pill">VictorDevMuller</span>
           <span class="dot">•</span>
           <span class="pill">Import/Export JSON</span>
           <span class="dot">•</span>
-          <span class="pill">Sync Code (4 chars)</span>
+          <span class="pill">Sync Code</span>
         </div>
       </div>
     </section>

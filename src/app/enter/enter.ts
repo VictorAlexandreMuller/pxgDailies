@@ -65,7 +65,7 @@ export class EnterComponent implements OnInit {
     }
 
     if (!code || code.length !== 4) {
-      this.error = 'Informe um Sync Code válido (ou gere um).';
+      this.error = 'Informe o seu Sync Code (ou gere um).';
       return;
     }
 

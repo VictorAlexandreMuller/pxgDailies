@@ -1,0 +1,79 @@
+<div class="page" *ngIf="db as data; else loading">
+  <header class="topbar">
+    <div class="left">
+      <h1>pxgDaily</h1>
+      <div class="sub">
+        <span><strong>Usuário:</strong> {{ data.profile.displayName }}</span>
+        <span class="dot">•</span>
+        <span><strong>Sync Code:</strong> <code>{{ syncCode }}</code></span>
+      </div>
+    </div>
+
+    <div class="right">
+      <button type="button" (click)="exportJsonDownload()">Exportar (Download)</button>
+      <button type="button" (click)="exportJsonClipboard()">Exportar (Copiar)</button>
+
+      <label class="import-btn">
+        <input type="file" accept="application/json" (change)="onImportFileSelected($event)" />
+        Importar JSON
+      </label>
+
+      <button type="button" class="secondary" (click)="logout()">Sair</button>
+    </div>
+  </header>
+
+  <section class="import-error" *ngIf="importError">
+    {{ importError }}
+  </section>
+
+  <section class="add">
+    <input
+      type="text"
+      placeholder="Nome do boneco (ex: Victor)"
+      [(ngModel)]="newCharacterName"
+      (keyup.enter)="addCharacter()"
+    />
+    <button type="button" (click)="addCharacter()">Adicionar Boneco</button>
+  </section>
+
+  <section class="list" *ngIf="data.characters.length; else empty">
+    <article class="card" *ngFor="let c of data.characters">
+      <div class="card-head">
+        <h2>{{ c.name }}</h2>
+        <button type="button" class="danger" (click)="removeCharacter(c.id)">Remover</button>
+      </div>
+
+      <div class="columns">
+        <!-- ✅ agora sem cast -->
+        <div class="col" *ngFor="let p of periods">
+          <h3>{{ periodLabel(p) }}</h3>
+
+          <div class="task" *ngFor="let t of tasksOf(c, p)">
+            <label>
+              <input type="checkbox" [checked]="isDoneNow(t)" (change)="toggleTask(c.id, t.id)" />
+              <span [class.done]="isDoneNow(t)">{{ t.title }}</span>
+            </label>
+
+            <button type="button" class="link" (click)="resetTaskNow(c.id, t.id)">reset</button>
+          </div>
+
+          <div class="muted" *ngIf="tasksOf(c, p).length === 0">
+            Sem tasks.
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <ng-template #empty>
+    <div class="empty">
+      Nenhum boneco cadastrado ainda. Clique em <strong>Adicionar Boneco</strong>.
+    </div>
+  </ng-template>
+</div>
+
+<ng-template #loading>
+  <div class="page">
+    Carregando...
+  </div>
+</ng-template>

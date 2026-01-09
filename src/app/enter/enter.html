@@ -1,0 +1,75 @@
+<div class="enter-page">
+  <div class="bg"></div>
+
+  <main class="shell">
+    <header class="brand">
+      <div class="logo">pxg</div>
+      <div class="titles">
+        <h1>pxgDaily</h1>
+        <p>
+          Entre com seu nome e um Sync Code. Para usar em outro PC, exporte o JSON na tela de dailies e
+          importe lá.
+        </p>
+      </div>
+    </header>
+
+    <section class="glass floating">
+      <div class="glass-inner">
+        <div class="fields">
+          <label class="field">
+            <span>Seu nome</span>
+            <input
+              type="text"
+              placeholder="Ex: Victor"
+              [(ngModel)]="displayName"
+              (keyup.enter)="enter()"
+              autocomplete="nickname"
+            />
+          </label>
+
+          <label class="field">
+            <span>Sync Code</span>
+            <input
+              type="text"
+              placeholder="Ex: A9FQ"
+              [(ngModel)]="syncCode"
+              (keyup.enter)="enter()"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="8"
+            />
+            <small class="hint">
+              Dica: guarde este código. Ele é a chave do seu registro neste navegador.
+            </small>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn" (click)="generateNewCode()">Gerar Sync Code</button>
+          <button
+            type="button"
+            class="btn ghost"
+            [disabled]="!syncCode"
+            (click)="copyCode()"
+            title="Copiar Sync Code"
+          >
+            Copiar
+          </button>
+          <button type="button" class="btn primary" (click)="enter()">Entrar</button>
+        </div>
+
+        <div class="error" *ngIf="error">
+          {{ error }}
+        </div>
+
+        <div class="footer">
+          <span class="pill">MVP local</span>
+          <span class="dot">•</span>
+          <span class="pill">Import/Export JSON</span>
+          <span class="dot">•</span>
+          <span class="pill">Sync Code (4 chars)</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>

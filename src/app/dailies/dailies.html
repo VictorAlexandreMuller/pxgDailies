@@ -164,69 +164,77 @@
                 </section>
 
                 <!-- TASKS ABERTAS do período -->
-                <div class="task" *ngFor="let t of openTasksOf(c, p)">
-                  <div class="task-row" [class.done]="isDoneNow(t)" [class.doing]="isDoingNow(t)">
-                    <div class="task-title" [title]="t.title">{{ t.title }}</div>
+                <div
+                  class="task-drop"
+                  cdkDropList
+                  [cdkDropListData]="openTasksOf(c, p)"
+                  (cdkDropListDropped)="onDropOpen($event, c.id, p)"
+                >
+                  <div
+                    class="task"
+                    *ngFor="let t of openTasksOf(c, p); trackBy: trackByTaskId"
+                    cdkDrag
+                  >
+                    <div class="task-row" [class.done]="isDoneNow(t)" [class.doing]="isDoingNow(t)">
+                      <div class="task-title" [title]="t.title">{{ t.title }}</div>
 
-                    <div class="task-actions">
-                      <button
-                        type="button"
-                        class="icon-btn check-btn"
-                        [class.on]="isDoneNow(t)"
-                        (click)="toggleDone(c.id, t.id)"
-                      >
-                        <span class="check-icon" aria-hidden="true"></span>
-                      </button>
-
-                      <button
-                        type="button"
-                        class="icon-btn focus-btn"
-                        (click)="startFocusCooldown(c.id, t)"
-                        [disabled]="isDoneNow(t) || isFocusCoolingDown(t.id)"
-                        title="O modo Foco deve ser utilizado para te ajudar a lembrar dos seus objetivos."
-                      >
-                        <img src="/icons/focus.png" alt="doing" />
-
-                        <!-- badge com ngx-countdown -->
-                        <countdown
-                          *ngIf="isFocusCoolingDown(t.id)"
-                          class="focus-badge"
-                          [config]="focusConfig(t.id)"
-                          (event)="onFocusCountdownEvent($event, c.id, t)"
-                        ></countdown>
-                      </button>
-
-                      <button
-                        *ngIf="t.origin !== 'system'"
-                        type="button"
-                        class="icon-btn"
-                        (click)="editTask(c.id, t.id)"
-                      >
-                        <img src="/icons/edit.png" alt="edit" />
-                      </button>
-
-                      <!-- USER: exclui -->
-                      <button
-                        *ngIf="t.origin !== 'system'; else archiveBtnOpen"
-                        type="button"
-                        class="icon-btn"
-                        (click)="deleteTask(c.id, t.id)"
-                        title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
-                      >
-                        <img src="/icons/delete.png" alt="delete" />
-                      </button>
-
-                      <!-- SYSTEM: arquiva -->
-                      <ng-template #archiveBtnOpen>
+                      <div class="task-actions">
                         <button
                           type="button"
+                          class="icon-btn check-btn"
+                          [class.on]="isDoneNow(t)"
+                          (click)="toggleDone(c.id, t.id)"
+                        >
+                          <span class="check-icon" aria-hidden="true"></span>
+                        </button>
+
+                        <button
+                          type="button"
+                          class="icon-btn focus-btn"
+                          (click)="startFocusCooldown(c.id, t)"
+                          [disabled]="isDoneNow(t) || isFocusCoolingDown(t.id)"
+                          title="O modo Foco deve ser utilizado para te ajudar a lembrar dos seus objetivos."
+                        >
+                          <img src="/icons/focus.png" alt="doing" />
+
+                          <countdown
+                            *ngIf="isFocusCoolingDown(t.id)"
+                            class="focus-badge"
+                            [config]="focusConfig(t.id)"
+                            (event)="onFocusCountdownEvent($event, c.id, t)"
+                          ></countdown>
+                        </button>
+
+                        <button
+                          *ngIf="t.origin !== 'system'"
+                          type="button"
                           class="icon-btn"
-                          (click)="archiveTask(c.id, t.id)"
+                          (click)="editTask(c.id, t.id)"
+                        >
+                          <img src="/icons/edit.png" alt="edit" />
+                        </button>
+
+                        <button
+                          *ngIf="t.origin !== 'system'; else archiveBtnOpen"
+                          type="button"
+                          class="icon-btn"
+                          (click)="deleteTask(c.id, t.id)"
                           title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
                         >
-                          <img src="/icons/arquivar.png" alt="arquivar" />
+                          <img src="/icons/delete.png" alt="delete" />
                         </button>
-                      </ng-template>
+
+                        <ng-template #archiveBtnOpen>
+                          <button
+                            type="button"
+                            class="icon-btn"
+                            (click)="archiveTask(c.id, t.id)"
+                            title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
+                          >
+                            <img src="/icons/arquivar.png" alt="arquivar" />
+                          </button>
+                        </ng-template>
+                      </div>
                     </div>
                   </div>
                 </div>

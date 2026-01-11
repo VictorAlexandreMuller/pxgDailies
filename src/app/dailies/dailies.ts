@@ -4,19 +4,19 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CountdownComponent, CountdownEvent } from 'ngx-countdown';
-
 import { DateTime } from 'luxon';
-
 import { PxgStoreService } from '../core/services/pxg-store.service';
 import { clearActiveUser, getActiveUser, saveDb } from '../core/data/storage';
 import { DEFAULT_TASK_SIGNATURES, defaultTasks } from '../core/data/default-tasks';
 import { currentKey } from '../core/utils/period-keys';
 import { Character, PxgDbV1, Task, Period } from '../core/models/pxg-db.model';
+import { DragDropModule } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
 @Component({
   selector: 'app-dailies',
   standalone: true,
-  imports: [CommonModule, FormsModule, CountdownComponent],
+  imports: [CommonModule, FormsModule, CountdownComponent, DragDropModule],
   templateUrl: './dailies.html',
   styleUrl: './dailies.scss',
 })
@@ -685,5 +685,100 @@ export class DailiesComponent implements OnDestroy {
 
     const done = this.doneTasksOfPeriod(character, period).length;
     return done === total;
+  }
+
+  onDropOpen(event: CdkDragDrop<Task[]>, characterId: string, period: Period): void {
+    // segurança
+    if (event.previousIndex === event.currentIndex) return;
+
+    const list = [...event.container.data];
+    moveItemInArray(list, event.previousIndex, event.currentIndex);
+
+    this.applyReorder(
+      characterId,
+      period,
+      list.map((t) => t.id),
+      'open'
+    );
+  }
+
+  onDropDone(event: CdkDragDrop<Task[]>, characterId: string, period: Period): void {
+    if (event.previousIndex === event.currentIndex) return;
+
+    const list = [...event.container.data];
+    moveItemInArray(list, event.previousIndex, event.currentIndex);
+
+    this.applyReorder(
+      characterId,
+      period,
+      list.map((t) => t.id),
+      'done'
+    );
+  }
+
+  /**
+   * Reordena apenas o "subgrupo" (open/done) daquele período, mantendo:
+   * - tasks de outros períodos intactas
+   * - tasks arquivadas intactas
+   * - posições relativas do resto do array intactas
+   */
+  private applyReorder(
+    characterId: string,
+    period: Period,
+    orderedIds: string[],
+    which: 'open' | 'done'
+  ): void {
+    this.store.update((db) => ({
+      ...db,
+      characters: db.characters.map((c) => {
+        if (c.id !== characterId) return c;
+
+        const original = c.tasks;
+        const positions: number[] = [];
+        const group: Task[] = [];
+
+        for (let i = 0; i < original.length; i++) {
+          const t = original[i];
+
+          if (t.period !== period) continue;
+          if (t.archivedAt) continue;
+
+          const isDone = this.isDoneNow(t);
+          const matches = which === 'done' ? isDone : !isDone;
+
+          if (!matches) continue;
+
+          positions.push(i);
+          group.push(t);
+        }
+
+        if (group.length <= 1) return c;
+
+        const byId = new Map(group.map((t) => [t.id, t]));
+
+        // monta lista reordenada na ordem pedida
+        const reordered: Task[] = [];
+        for (const id of orderedIds) {
+          const found = byId.get(id);
+          if (found) reordered.push(found);
+        }
+
+        // garante que qualquer item faltante entre no fim, mantendo ordem antiga
+        for (const t of group) {
+          if (!reordered.some((x) => x.id === t.id)) reordered.push(t);
+        }
+
+        const next = [...original];
+        for (let k = 0; k < positions.length; k++) {
+          next[positions[k]] = reordered[k];
+        }
+
+        return { ...c, tasks: next };
+      }),
+    }));
+  }
+
+  trackByTaskId(_: number, t: Task): string {
+    return t.id;
   }
 }

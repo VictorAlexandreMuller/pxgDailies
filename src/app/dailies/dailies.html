@@ -15,10 +15,8 @@
     </div>
 
     <div class="right">
-      <button type="button" class="btn ghost" (click)="exportJsonDownload()">
-        Exportar
-      </button>
-      <button type="button" class="btn ghost" (click)="exportJsonClipboard()" style="display: none;">
+      <button type="button" class="btn ghost" (click)="exportJsonDownload()">Exportar</button>
+      <button type="button" class="btn ghost" (click)="exportJsonClipboard()" style="display: none">
         Exportar (Copiar)
       </button>
 
@@ -124,7 +122,6 @@
                             type="button"
                             class="icon-btn check-btn on"
                             (click)="toggleDone(c.id, t.id)"
-                            title="Desmarcar"
                           >
                             <span class="check-icon" aria-hidden="true"></span>
                           </button>
@@ -134,7 +131,6 @@
                             type="button"
                             class="icon-btn"
                             (click)="editTask(c.id, t.id)"
-                            title="Editar"
                           >
                             <img src="/icons/edit.png" alt="edit" />
                           </button>
@@ -145,7 +141,7 @@
                             type="button"
                             class="icon-btn"
                             (click)="deleteTask(c.id, t.id)"
-                            title="Excluir"
+                            title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
                           >
                             <img src="/icons/delete.png" alt="delete" />
                           </button>
@@ -156,7 +152,7 @@
                               type="button"
                               class="icon-btn"
                               (click)="archiveTask(c.id, t.id)"
-                              title="Arquivar"
+                              title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
                             >
                               <img src="/icons/arquivar.png" alt="arquivar" />
                             </button>
@@ -178,7 +174,6 @@
                         class="icon-btn check-btn"
                         [class.on]="isDoneNow(t)"
                         (click)="toggleDone(c.id, t.id)"
-                        title="Feito"
                       >
                         <span class="check-icon" aria-hidden="true"></span>
                       </button>
@@ -188,7 +183,7 @@
                         class="icon-btn focus-btn"
                         (click)="startFocusCooldown(c.id, t)"
                         [disabled]="isDoneNow(t) || isFocusCoolingDown(t.id)"
-                        title="Fazendo"
+                        title="O modo Foco deve ser utilizado para te ajudar a lembrar dos seus objetivos."
                       >
                         <img src="/icons/focus.png" alt="doing" />
 
@@ -206,7 +201,6 @@
                         type="button"
                         class="icon-btn"
                         (click)="editTask(c.id, t.id)"
-                        title="Editar"
                       >
                         <img src="/icons/edit.png" alt="edit" />
                       </button>
@@ -217,7 +211,7 @@
                         type="button"
                         class="icon-btn"
                         (click)="deleteTask(c.id, t.id)"
-                        title="Excluir"
+                        title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
                       >
                         <img src="/icons/delete.png" alt="delete" />
                       </button>
@@ -228,7 +222,7 @@
                           type="button"
                           class="icon-btn"
                           (click)="archiveTask(c.id, t.id)"
-                          title="Arquivar"
+                          title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
                         >
                           <img src="/icons/arquivar.png" alt="arquivar" />
                         </button>

@@ -61,7 +61,7 @@
                 src="/icons/delete.png"
                 alt="delete"
                 title="Remover boneco"
-                (click)="$event.stopPropagation(); removeCharacter(c.id)"
+                (click)="$event.stopPropagation(); openDeleteCharacterModal(c.id)"
               />
             </button>
           </nav>
@@ -129,7 +129,7 @@
                             *ngIf="t.origin !== 'system'; else archiveBtnDone"
                             type="button"
                             class="icon-btn"
-                            (click)="deleteTask(c.id, t.id)"
+                            (click)="openDeleteTaskModal(c.id, t.id)"
                             title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
                           >
                             <img src="/icons/delete.png" alt="delete" />
@@ -207,7 +207,7 @@
                           *ngIf="t.origin !== 'system'; else archiveBtnOpen"
                           type="button"
                           class="icon-btn"
-                          (click)="deleteTask(c.id, t.id)"
+                          (click)="openDeleteTaskModal(c.id, t.id)"
                           title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
                         >
                           <img src="/icons/delete.png" alt="delete" />
@@ -236,7 +236,7 @@
 
         <ng-template #empty>
           <div class="empty">
-            Nenhum boneco cadastrado ainda. Clique em <strong>Adicionar Boneco</strong>.
+            Nenhum boneco cadastrado.
           </div>
         </ng-template>
       </div>
@@ -302,3 +302,13 @@
     </div>
   </div>
 </div>
+
+<app-modal-excluir
+  [open]="deleteModalOpen"
+  [title]="deleteModalTitle"
+  [message]="deleteModalMessage"
+  [itemLabel]="deleteModalItemLabel"
+  [countdownSeconds]="5"
+  (cancel)="closeDeleteModal()"
+  (confirm)="confirmDeleteModal()"
+></app-modal-excluir>

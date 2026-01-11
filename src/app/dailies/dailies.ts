@@ -13,11 +13,12 @@ import { Character, PxgDbV1, Task, Period } from '../core/models/pxg-db.model';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { PxgExportV1 } from '../core/models/pxg-export.model';
+import { ModalExcluirComponent } from '../modals/modal-excluir.component/modal-excluir.component';
 
 @Component({
   selector: 'app-dailies',
   standalone: true,
-  imports: [CommonModule, FormsModule, CountdownComponent, DragDropModule],
+  imports: [CommonModule, FormsModule, CountdownComponent, DragDropModule, ModalExcluirComponent],
   templateUrl: './dailies.html',
   styleUrl: './dailies.scss',
 })
@@ -27,8 +28,15 @@ export class DailiesComponent implements OnDestroy {
   db: PxgDbV1 | null = null;
   archivedModalOpen = false;
   newCharacterName = '';
-
   activeCharacterId: string | null = null;
+  deleteModalOpen = false;
+  deleteModalTitle = 'Confirmar exclusão';
+  deleteModalMessage = 'Você realmente deseja excluir este item?';
+  deleteModalItemLabel = '';
+
+  private deleteAction: 'character' | 'task' | null = null;
+  private deleteCharacterId: string | null = null;
+  private deleteTaskId: string | null = null;
 
   readonly periods: Period[] = ['daily', 'weekly', 'monthly'];
 
@@ -180,14 +188,7 @@ export class DailiesComponent implements OnDestroy {
   }
 
   removeCharacter(characterId: string): void {
-    if (!this.db) return;
-    const ok = confirm('Remover este boneco?');
-    if (!ok) return;
-
-    this.store.update((db) => ({
-      ...db,
-      characters: db.characters.filter((c) => c.id !== characterId),
-    }));
+    this.openDeleteCharacterModal(characterId);
   }
 
   // ===== Export / Import / Logout =====
@@ -271,16 +272,7 @@ export class DailiesComponent implements OnDestroy {
   }
 
   deleteTask(characterId: string, taskId: string): void {
-    const ok = confirm('Excluir esta task?');
-    if (!ok) return;
-
-    this.store.update((db) => ({
-      ...db,
-      characters: db.characters.map((c) => {
-        if (c.id !== characterId) return c;
-        return { ...c, tasks: c.tasks.filter((t) => t.id !== taskId) };
-      }),
-    }));
+    this.openDeleteTaskModal(characterId, taskId);
   }
 
   // ===== Done / Doing =====
@@ -746,5 +738,109 @@ export class DailiesComponent implements OnDestroy {
 
   trackByTaskId(_: number, t: Task): string {
     return t.id;
+  }
+
+  openDeleteCharacterModal(characterId: string): void {
+    if (!this.db) return;
+
+    const ch = this.db.characters.find((c) => c.id === characterId);
+    if (!ch) return;
+
+    this.deleteAction = 'character';
+    this.deleteCharacterId = characterId;
+    this.deleteTaskId = null;
+
+    this.deleteModalTitle = 'EXCLUIR BONECO';
+    this.deleteModalMessage =
+      'ESSA AÇÃO REMOVERÁ TODAS AS TASKS DESSE BONECO E NÃO PODERÁ SER DESFEITA.';
+    this.deleteModalItemLabel = `Boneco: ${ch.name}`;
+
+    this.deleteModalOpen = true;
+  }
+
+  openDeleteTaskModal(characterId: string, taskId: string): void {
+    if (!this.db) return;
+
+    const ch = this.db.characters.find((c) => c.id === characterId);
+    const task = ch?.tasks.find((t) => t.id === taskId);
+    if (!ch || !task) return;
+
+    // Mantém a mesma regra atual: system não pode excluir (só arquivar)
+    if (task.origin === 'system') {
+      alert('Esta task é padrão do sistema e não pode ser excluída. Use Arquivar.');
+      return;
+    }
+
+    this.deleteAction = 'task';
+    this.deleteCharacterId = characterId;
+    this.deleteTaskId = taskId;
+
+    this.deleteModalTitle = 'Excluir task';
+    this.deleteModalMessage =
+      'Você realmente deseja excluir esta task?';
+    this.deleteModalItemLabel = `Task: ${task.title}`;
+
+    this.deleteModalOpen = true;
+  }
+
+  closeDeleteModal(): void {
+    this.deleteModalOpen = false;
+
+    this.deleteAction = null;
+    this.deleteCharacterId = null;
+    this.deleteTaskId = null;
+
+    this.deleteModalItemLabel = '';
+  }
+
+  confirmDeleteModal(): void {
+    if (!this.deleteAction) {
+      this.closeDeleteModal();
+      return;
+    }
+
+    if (this.deleteAction === 'character') {
+      const characterId = this.deleteCharacterId;
+      if (!characterId) {
+        this.closeDeleteModal();
+        return;
+      }
+
+      // remove boneco
+      this.store.update((db) => ({
+        ...db,
+        characters: db.characters.filter((c) => c.id !== characterId),
+      }));
+
+      // se o boneco removido era o ativo, limpa o activeCharacterId
+      if (this.activeCharacterId === characterId) {
+        this.activeCharacterId = null;
+      }
+
+      this.closeDeleteModal();
+      return;
+    }
+
+    // deleteAction === 'task'
+    const characterId = this.deleteCharacterId;
+    const taskId = this.deleteTaskId;
+
+    if (!characterId || !taskId) {
+      this.closeDeleteModal();
+      return;
+    }
+
+    // se estava em focus/doing, cancela
+    this.cancelFocus(taskId);
+
+    this.store.update((db) => ({
+      ...db,
+      characters: db.characters.map((c) => {
+        if (c.id !== characterId) return c;
+        return { ...c, tasks: c.tasks.filter((t) => t.id !== taskId) };
+      }),
+    }));
+
+    this.closeDeleteModal();
   }
 }

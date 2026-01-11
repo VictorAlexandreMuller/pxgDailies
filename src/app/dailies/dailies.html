@@ -1,5 +1,5 @@
 <div class="dailies-page" *ngIf="db as data; else loading">
-  <div class="bg"></div>
+  <div class="bg" [style.background-image]="bgStyle()"></div>
 
   <!-- NAVBAR FIXA -->
   <header class="topbar topbar-fixed">
@@ -25,6 +25,18 @@
       >
         Arquivados
       </button>
+      <!-- Wallpaper dropdown -->
+      <select
+        class="btn ghost wallpaper-select"
+        [(ngModel)]="selectedWallpaperKey"
+        (change)="onWallpaperChange()"
+        title="Alterar wallpaper"
+      >
+        <option *ngFor="let w of wallpapers" [ngValue]="w.key">
+          {{ w.label }}
+        </option>
+      </select>
+
       <button type="button" class="btn primary" (click)="logout()">Sair</button>
     </div>
   </header>
@@ -33,7 +45,6 @@
   <main class="shell">
     <section class="glass">
       <div class="glass-inner">
-
         <section class="add">
           <input
             type="text"
@@ -235,9 +246,7 @@
         </section>
 
         <ng-template #empty>
-          <div class="empty">
-            Nenhum boneco cadastrado.
-          </div>
+          <div class="empty">Nenhum boneco cadastrado.</div>
         </ng-template>
       </div>
     </section>
@@ -264,7 +273,7 @@
 
 <ng-template #loading>
   <div class="dailies-page">
-    <div class="bg"></div>
+    <div class="bg" [style.background-image]="bgStyle()"></div>
     <main class="shell">
       <section class="glass floating">
         <div class="glass-inner">Carregando...</div>

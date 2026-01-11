@@ -46,7 +46,6 @@ export class DailiesComponent implements OnDestroy {
     monthly: false,
   };
 
-  // ===== Focus (cooldown) =====
   readonly FOCUS_SECONDS = 60 * 60;
   private focusConfigs = new Map<string, any>();
   private focusCooling = new Set<string>();
@@ -56,11 +55,44 @@ export class DailiesComponent implements OnDestroy {
   private focusPromptCharacterId: string | null = null;
   private focusPromptTaskId: string | null = null;
 
-  // ===== Reset Engine =====
   private readonly TZ = 'America/Sao_Paulo';
   private readonly RESET_HOUR = 7;
   private readonly RESET_MINUTE = 40;
   private resetTicker: ReturnType<typeof setInterval> | null = null;
+
+  readonly wallpapers: Array<{ key: string; label: string; file: string }> = [
+    { key: 'rayquaza', label: 'Rayquaza', file: '/images/rayquaza.png' },
+    { key: 'johto', label: 'Johto', file: '/images/johto.jpg' },
+    { key: 'palkya', label: 'Palkya', file: '/images/palkya.jpg' },
+    { key: 'regirock', label: 'Regirock', file: '/images/regirock.png' },
+    { key: 'registeel', label: 'Registeel', file: '/images/registeel.png' },
+    { key: 'digglets', label: 'Digglets', file: '/images/digglets.png' },
+    { key: 'eevolutions', label: 'Eevolutions', file: '/images/eevolutions.png' },
+    { key: 'unowns', label: 'Unowns', file: '/images/unowns.jpg' },
+    { key: 'poke-balls', label: 'Poke Balls', file: '/images/pokeballs.jpg' },
+    { key: 'pokemon-cards', label: 'Pokemon Cards', file: '/images/pokemon-cards.png' },
+    { key: 'pikachus', label: 'Pikachus', file: '/images/pikachus.jpg' },
+    { key: 'pikachu-relax', label: 'Pikachu Relax', file: '/images/pikachu-relax.jpg' },
+    { key: 'malefic', label: 'Malefic', file: '/images/malefic.jpg' },
+    { key: 'naturia', label: 'Naturia', file: '/images/naturia.jpg' },
+    { key: 'ocean-pokemons', label: 'Ocean Pokemons', file: '/images/ocean-pokemons.jpg' },
+    {
+      key: 'hamburguers-pokemons',
+      label: 'Hamburguers Pokemons',
+      file: '/images/hamburguers-pokemons.jpg',
+    },
+    { key: 'celabi-temple', label: 'Celebi Temple', file: '/images/celebi-temple.jpg' },
+    { key: 'baby-legendaries', label: 'Baby Legendaries', file: '/images/baby-legendaries.png' },
+    { key: 'deoxys', label: 'Deoxys', file: '/images/deoxys.jpg' },
+    { key: 'floral-pikachu', label: 'Floral Pikachu', file: '/images/floral-pikachu.png' },
+    { key: 'minimalist-digglet', label: 'Minimalist Digglet', file: '/images/minimalist-digglet.jpg' },
+    { key: 'protagonists', label: 'Protagonists', file: '/images/protagonists.jpg' },
+    { key: 'raibolt', label: 'Raibolt', file: '/images/raibolt.jpg' },
+    { key: 'seavell', label: 'Seavell', file: '/images/seavell.jpg' },
+    { key: 'wailmer', label: 'Wailmer', file: '/images/wailmer.jpg' },
+  ];
+
+  selectedWallpaperKey = 'rayquaza';
 
   constructor(
     private readonly router: Router,
@@ -75,6 +107,7 @@ export class DailiesComponent implements OnDestroy {
 
     this.displayName = active.name;
     this.syncCode = active.syncCode;
+    this.loadWallpaperPreference();
 
     const loaded = this.store.load(this.displayName, this.syncCode);
     if (!loaded) {
@@ -99,10 +132,9 @@ export class DailiesComponent implements OnDestroy {
       this.applyResetsIfNeeded();
     });
 
-    // Também roda de tempos em tempos (se o app ficar aberto atravessando o horário)
     this.resetTicker = setInterval(() => {
       this.applyResetsIfNeeded();
-    }, 60_000); // 1 minuto
+    }, 60_000);
   }
 
   ngOnDestroy(): void {
@@ -112,7 +144,6 @@ export class DailiesComponent implements OnDestroy {
     }
   }
 
-  // ===== Getters / seleção =====
   get activeCharacter(): Character | null {
     if (!this.db || !this.activeCharacterId) return null;
     return this.db.characters.find((c) => c.id === this.activeCharacterId) ?? null;
@@ -123,7 +154,6 @@ export class DailiesComponent implements OnDestroy {
     this.donePanelOpen = { daily: false, weekly: false, monthly: false };
   }
 
-  // ===== Labels / queries =====
   periodLabel(period: Period): string {
     if (period === 'daily') return 'Diárias';
     if (period === 'weekly') return 'Semanais';
@@ -134,18 +164,12 @@ export class DailiesComponent implements OnDestroy {
     return character.tasks.filter((t) => t.period === period && !t.archivedAt);
   }
 
-  /**
-   * DONE real agora passa a ser definido por:
-   * - se existe resetAt
-   * - e se "agora" (BRT) ainda é antes de resetAt
-   */
   isDoneNow(task: Task): boolean {
     if (!task.resetAt) return false;
 
     const now = DateTime.now().setZone(this.TZ);
     const resetAt = DateTime.fromISO(task.resetAt, { zone: this.TZ });
 
-    // Se já passou do resetAt, não é done mais
     return resetAt.isValid ? now < resetAt : false;
   }
 
@@ -163,7 +187,6 @@ export class DailiesComponent implements OnDestroy {
     );
   }
 
-  // ===== Personagens =====
   addCharacter(): void {
     const name = this.newCharacterName.trim();
     if (!name) return;
@@ -191,7 +214,6 @@ export class DailiesComponent implements OnDestroy {
     this.openDeleteCharacterModal(characterId);
   }
 
-  // ===== Export / Import / Logout =====
   exportJsonDownload(): void {
     if (!this.db) return;
 
@@ -224,7 +246,6 @@ export class DailiesComponent implements OnDestroy {
     this.router.navigateByUrl('/enter');
   }
 
-  // ===== Tasks CRUD =====
   addTask(characterId: string, period: Period): void {
     const title = prompt(`Nome da task (${this.periodLabel(period)}):`)?.trim();
     if (!title) return;
@@ -275,7 +296,6 @@ export class DailiesComponent implements OnDestroy {
     this.openDeleteTaskModal(characterId, taskId);
   }
 
-  // ===== Done / Doing =====
   toggleDone(characterId: string, taskId: string): void {
     this.cancelFocus(taskId);
 
@@ -291,7 +311,6 @@ export class DailiesComponent implements OnDestroy {
           tasks: c.tasks.map((t) => {
             if (t.id !== taskId) return t;
 
-            // Se estava done e o usuário clicou, ele está desmarcando manualmente:
             const currentlyDone = this.isDoneNow(t);
 
             if (currentlyDone) {
@@ -304,10 +323,8 @@ export class DailiesComponent implements OnDestroy {
               };
             }
 
-            // Marcando como concluída agora:
             const resetAtDt = this.computeResetAt(t, now);
 
-            // IMPORTANTÍSSIMO: Luxon toISO() é string | null -> normaliza para undefined
             const doneAtIso = now.toISO() ?? undefined;
             const resetAtIso = resetAtDt.toISO() ?? undefined;
 
@@ -328,7 +345,6 @@ export class DailiesComponent implements OnDestroy {
     this.donePanelOpen[period] = !this.donePanelOpen[period];
   }
 
-  // ===== Focus (ngx-countdown) =====
   isFocusCoolingDown(taskId: string): boolean {
     return this.focusCooling.has(taskId);
   }
@@ -355,7 +371,6 @@ export class DailiesComponent implements OnDestroy {
   onFocusCountdownEvent(e: CountdownEvent, characterId: string, task: Task): void {
     if (e.action !== 'done') return;
 
-    // Se durante o timer a task foi marcada como concluída, cancela o fluxo
     if (this.isDoneNow(task)) {
       this.cancelFocus(task.id);
       return;
@@ -387,7 +402,6 @@ export class DailiesComponent implements OnDestroy {
     }
   }
 
-  /** Helpers para evitar estados errados */
   private setDoingOn(characterId: string, taskId: string): void {
     this.store.update((db) => ({
       ...db,
@@ -438,16 +452,6 @@ export class DailiesComponent implements OnDestroy {
     }
   }
 
-  // ======================================================================================
-  //                                   RESET RULES (Luxon)
-  // ======================================================================================
-
-  /**
-   * Aplica os resets expirados, voltando tasks para "abertas" quando now >= resetAt.
-   * Roda:
-   * - quando dbObs emite
-   * - a cada 60 segundos (app aberto)
-   */
   private applyResetsIfNeeded(): void {
     if (!this.db) return;
 
@@ -461,7 +465,6 @@ export class DailiesComponent implements OnDestroy {
 
         const resetAt = DateTime.fromISO(t.resetAt, { zone: this.TZ });
 
-        // se resetAt inválido, limpa por segurança
         if (!resetAt.isValid) {
           changed = true;
           return {
@@ -473,7 +476,6 @@ export class DailiesComponent implements OnDestroy {
           };
         }
 
-        // expirou: limpa estado de done
         if (now >= resetAt) {
           changed = true;
           return {
@@ -499,21 +501,15 @@ export class DailiesComponent implements OnDestroy {
     }
   }
 
-  /**
-   * Calcula o resetAt conforme suas regras.
-   * Entrada: a task que está sendo marcada + "agora" em BRT.
-   */
   private computeResetAt(task: Task, nowBrt: DateTime): DateTime {
     if (task.period === 'daily') {
-      // amanhã 07:40 BRT
       return nowBrt
         .plus({ days: 1 })
         .set({ hour: this.RESET_HOUR, minute: this.RESET_MINUTE, second: 0, millisecond: 0 });
     }
 
     if (task.period === 'weekly') {
-      // PRÓXIMA segunda às 07:40 (sempre na semana seguinte)
-      const nextWeekStart = nowBrt.plus({ weeks: 1 }).startOf('week'); // segunda 00:00
+      const nextWeekStart = nowBrt.plus({ weeks: 1 }).startOf('week');
       return nextWeekStart.set({
         hour: this.RESET_HOUR,
         minute: this.RESET_MINUTE,
@@ -522,14 +518,11 @@ export class DailiesComponent implements OnDestroy {
       });
     }
 
-    // monthly
     const title = (task.title ?? '').trim().toLowerCase();
     if (title === 'clones') {
-      // 30 dias a partir de quando marcou (mantém o horário exato da marcação)
       return nowBrt.plus({ days: 30 });
     }
 
-    // 1º dia do mês seguinte às 07:40 BRT
     return nowBrt
       .plus({ months: 1 })
       .startOf('month')
@@ -581,7 +574,6 @@ export class DailiesComponent implements OnDestroy {
   archivedTasksOfActive(): Task[] {
     const c = this.activeCharacter;
     if (!c) return [];
-    // você pode ordenar pela data mais recente se quiser:
     return [...c.tasks]
       .filter((t) => !!t.archivedAt)
       .sort((a, b) => (b.archivedAt ?? '').localeCompare(a.archivedAt ?? ''));
@@ -593,7 +585,6 @@ export class DailiesComponent implements OnDestroy {
 
     const nowIso = new Date().toISOString();
 
-    // se estava em focus/doing, cancela
     this.cancelFocus(taskId);
 
     this.store.update((db) => ({
@@ -606,7 +597,6 @@ export class DailiesComponent implements OnDestroy {
           tasks: c.tasks.map((t) => {
             if (t.id !== taskId) return t;
 
-            // ao arquivar, limpa estados transitórios para não “vazar”
             return {
               ...t,
               archivedAt: nowIso,
@@ -638,7 +628,7 @@ export class DailiesComponent implements OnDestroy {
   }
 
   allDoneForPeriod(character: Character, period: Period): boolean {
-    const total = this.tasksOf(character, period).length; // já exclui arquivadas
+    const total = this.tasksOf(character, period).length;
     if (total === 0) return false;
 
     const done = this.doneTasksOfPeriod(character, period).length;
@@ -646,7 +636,6 @@ export class DailiesComponent implements OnDestroy {
   }
 
   onDropOpen(event: CdkDragDrop<Task[]>, characterId: string, period: Period): void {
-    // segurança
     if (event.previousIndex === event.currentIndex) return;
 
     const list = [...event.container.data];
@@ -674,12 +663,6 @@ export class DailiesComponent implements OnDestroy {
     );
   }
 
-  /**
-   * Reordena apenas o "subgrupo" (open/done) daquele período, mantendo:
-   * - tasks de outros períodos intactas
-   * - tasks arquivadas intactas
-   * - posições relativas do resto do array intactas
-   */
   private applyReorder(
     characterId: string,
     period: Period,
@@ -714,14 +697,12 @@ export class DailiesComponent implements OnDestroy {
 
         const byId = new Map(group.map((t) => [t.id, t]));
 
-        // monta lista reordenada na ordem pedida
         const reordered: Task[] = [];
         for (const id of orderedIds) {
           const found = byId.get(id);
           if (found) reordered.push(found);
         }
 
-        // garante que qualquer item faltante entre no fim, mantendo ordem antiga
         for (const t of group) {
           if (!reordered.some((x) => x.id === t.id)) reordered.push(t);
         }
@@ -765,7 +746,6 @@ export class DailiesComponent implements OnDestroy {
     const task = ch?.tasks.find((t) => t.id === taskId);
     if (!ch || !task) return;
 
-    // Mantém a mesma regra atual: system não pode excluir (só arquivar)
     if (task.origin === 'system') {
       alert('Esta task é padrão do sistema e não pode ser excluída. Use Arquivar.');
       return;
@@ -776,8 +756,7 @@ export class DailiesComponent implements OnDestroy {
     this.deleteTaskId = taskId;
 
     this.deleteModalTitle = 'Excluir task';
-    this.deleteModalMessage =
-      'Você realmente deseja excluir esta task?';
+    this.deleteModalMessage = 'Você realmente deseja excluir esta task?';
     this.deleteModalItemLabel = `Task: ${task.title}`;
 
     this.deleteModalOpen = true;
@@ -806,13 +785,11 @@ export class DailiesComponent implements OnDestroy {
         return;
       }
 
-      // remove boneco
       this.store.update((db) => ({
         ...db,
         characters: db.characters.filter((c) => c.id !== characterId),
       }));
 
-      // se o boneco removido era o ativo, limpa o activeCharacterId
       if (this.activeCharacterId === characterId) {
         this.activeCharacterId = null;
       }
@@ -821,7 +798,6 @@ export class DailiesComponent implements OnDestroy {
       return;
     }
 
-    // deleteAction === 'task'
     const characterId = this.deleteCharacterId;
     const taskId = this.deleteTaskId;
 
@@ -830,7 +806,6 @@ export class DailiesComponent implements OnDestroy {
       return;
     }
 
-    // se estava em focus/doing, cancela
     this.cancelFocus(taskId);
 
     this.store.update((db) => ({
@@ -842,5 +817,25 @@ export class DailiesComponent implements OnDestroy {
     }));
 
     this.closeDeleteModal();
+  }
+
+  private wallpaperStorageKey(): string {
+    return `pxg.wallpaper.${this.displayName}.${this.syncCode}`;
+  }
+
+  private loadWallpaperPreference(): void {
+    const saved = localStorage.getItem(this.wallpaperStorageKey());
+    const exists = saved && this.wallpapers.some((w) => w.key === saved);
+    this.selectedWallpaperKey = exists ? (saved as string) : 'rayquaza';
+  }
+
+  onWallpaperChange(): void {
+    localStorage.setItem(this.wallpaperStorageKey(), this.selectedWallpaperKey);
+  }
+
+  bgStyle(): string {
+    const found = this.wallpapers.find((w) => w.key === this.selectedWallpaperKey);
+    const file = found?.file ?? '/images/rayquaza.png';
+    return `url('${file}')`;
   }
 }

@@ -92,3 +92,85 @@ export function findLatestDbByName(name: string): { syncCode: string; db: any } 
   matches.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
   return { syncCode: matches[0].code, db: matches[0].db };
 }
+
+export interface RecentAccess {
+  name: string;
+  syncCode: string;
+  lastOpenAt?: string;
+  updatedAt?: string;
+  createdAt?: string;
+}
+
+function safeParseJson(raw: string): any | null {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function listRecentAccesses(limit = 8): RecentAccess[] {
+  if (!isBrowser()) return [];
+
+  const out: RecentAccess[] = [];
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith(KEY_PREFIX)) continue;
+
+    const raw = localStorage.getItem(k);
+    if (!raw) continue;
+
+    const db = safeParseJson(raw);
+    if (!db?.profile?.displayName) continue;
+
+    const keyTail = k.substring(KEY_PREFIX.length);
+    const parts = keyTail.split('::');
+    if (parts.length !== 2) continue;
+
+    const syncCode = parts[1];
+
+    out.push({
+      name: String(db.profile.displayName),
+      syncCode,
+      lastOpenAt: db.profile.lastOpenAt,
+      createdAt: db.profile.createdAt,
+      updatedAt: db.meta?.updatedAt,
+    });
+  }
+
+  const byName = new Map<string, RecentAccess>();
+  for (const item of out) {
+    const key = item.name.trim().toLowerCase();
+    const current = byName.get(key);
+    if (!current) {
+      byName.set(key, item);
+      continue;
+    }
+
+    const a = mostRecentIso(item);
+    const b = mostRecentIso(current);
+    if (a > b) byName.set(key, item);
+  }
+
+  const unique = Array.from(byName.values());
+
+  unique.sort((a, b) => mostRecentIso(b).localeCompare(mostRecentIso(a)));
+
+  return unique.slice(0, Math.max(0, limit));
+}
+
+function mostRecentIso(x: RecentAccess): string {
+  return (
+    x.lastOpenAt ??
+    x.updatedAt ??
+    x.createdAt ??
+    '1970-01-01T00:00:00.000Z'
+  );
+}
+
+export function removeDb(name: string, syncCode: string): void {
+  if (!isBrowser()) return;
+  const key = normalizeKey(name, syncCode);
+  localStorage.removeItem(KEY_PREFIX + key);
+}

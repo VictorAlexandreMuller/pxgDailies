@@ -43,12 +43,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px 0 0 0;
+  padding: 18px 0 0 0;
 }
 
 .logo {
-  width: auto;
-  height: auto;
   padding: 10px 20px;
   font-size: 50px;
   border-radius: 16px;
@@ -132,6 +130,7 @@
 .hint {
   font-size: 12px;
   color: rgba(233, 238, 245, 0.6);
+  line-height: 1.35;
 }
 
 .actions {
@@ -139,13 +138,14 @@
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
 }
 
 .btn {
   height: 42px;
   border-radius: 14px;
   padding: 0 14px;
-  font-weight: 600;
+  font-weight: 650;
   letter-spacing: 0.2px;
 
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -153,6 +153,7 @@
   color: #eef3fb;
 
   cursor: pointer;
+  user-select: none;
   transition: transform 120ms ease, background 160ms ease, border-color 160ms ease, opacity 160ms ease;
 }
 
@@ -185,6 +186,34 @@
   border-color: rgba(120, 200, 255, 0.55);
 }
 
+/* Botão "Entrar" com ícone */
+.btn.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+}
+
+.btn.with-icon .btn-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  opacity: 0.95;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
+}
+
+/* Import */
+.import-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  input[type='file'] {
+    display: none;
+  }
+}
+
+/* Errors */
 .error {
   border-radius: 14px;
   padding: 10px 12px;
@@ -194,25 +223,139 @@
   font-size: 13px;
 }
 
-.footer {
-  display: flex;
+/* =========================
+   RECENTES (compacto)
+   ========================= */
+
+.recent {
+  margin-top: 2px;
+  display: grid;
   gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-  color: rgba(233, 238, 245, 0.62);
+}
+
+.recent-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recent-title {
   font-size: 12px;
-  padding-top: 2px;
+  font-weight: 900;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+  opacity: 0.9;
 }
 
-.pill {
+.recent-sub {
+  font-size: 12px;
+  opacity: 0.60;
+  text-align: right;
+}
+
+.recent-list {
+  display: grid;
+  gap: 8px;
+}
+
+/* Deixa de parecer um "botão gigante": altura menor, padding menor, borda mais leve */
+.recent-item {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(10, 14, 22, 0.18);
+  color: rgba(233, 238, 245, 0.92);
+  border-radius: 14px;
+  padding: 10px 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  cursor: pointer;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.recent-item:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.recent-item:active {
+  transform: translateY(0px);
+}
+
+.recent-left {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.recent-name {
+  font-size: 13px;
+  font-weight: 850;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-meta {
+  font-size: 11px;
+  opacity: 0.62;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ações menores e consistentes */
+.recent-actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+
+  display: grid;
+  place-items: center;
+
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(10, 14, 22, 0.20);
-  padding: 6px 10px;
-  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #eef3fb;
+
+  cursor: pointer;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease, opacity 160ms ease;
 }
 
-.dot {
-  opacity: 0.6;
+.icon-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+.icon-btn:active {
+  transform: translateY(0px);
+}
+
+.icon-btn img {
+  width: 16px;
+  height: 16px;
+  opacity: 0.95;
+}
+
+.icon-btn.danger {
+  border-color: rgba(255, 80, 80, 0.22);
+  background: rgba(255, 80, 80, 0.10);
+}
+
+.icon-btn.danger:hover {
+  border-color: rgba(255, 80, 80, 0.35);
+  background: rgba(255, 80, 80, 0.14);
 }
 
 @media (max-width: 520px) {
@@ -231,14 +374,23 @@
   .btn {
     flex: 1;
   }
-}
 
-.import-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  /* Recents mais “mobile friendly” */
+  .recent-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
-  input[type='file'] {
-    display: none;
+  .recent-sub {
+    text-align: left;
+  }
+
+  .recent-item {
+    padding: 10px;
+  }
+
+  .icon-btn {
+    width: 36px;
+    height: 36px;
   }
 }

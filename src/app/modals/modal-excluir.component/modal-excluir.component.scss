@@ -1,0 +1,211 @@
+:host {
+  display: block;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: grid;
+  place-items: center;
+  padding: 18px;
+
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.modal-card {
+  width: min(520px, 100%);
+  border-radius: 18px;
+  overflow: hidden;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(20, 24, 34, 0.92);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: rgba(233, 238, 245, 0.95);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 14px 14px 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.modal-title {
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+  opacity: 0.95;
+}
+
+.icon-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(233, 238, 245, 0.9);
+
+  cursor: pointer;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.icon-close:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.modal-body {
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.modal-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  opacity: 0.9;
+}
+
+.modal-item {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.85;
+
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.modal-item .label {
+  opacity: 0.65;
+  font-weight: 700;
+}
+
+.modal-item .value {
+  font-weight: 800;
+}
+
+.countdown {
+  font-size: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.06);
+
+  opacity: 0.9;
+}
+
+.modal-actions {
+  padding: 12px 14px 14px 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.btn {
+  height: 40px;
+  border-radius: 14px;
+  padding: 0 14px;
+  font-weight: 700;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.10);
+  color: rgba(233, 238, 245, 0.95);
+
+  cursor: pointer;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease, opacity 160ms ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+.btn:active {
+  transform: translateY(0px);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn.ghost {
+  background: rgba(10, 14, 22, 0.22);
+}
+
+.btn.danger {
+  border-color: rgba(255, 80, 80, 0.28);
+  background: rgba(255, 80, 80, 0.12);
+}
+
+.btn.danger:hover {
+  border-color: rgba(255, 80, 80, 0.40);
+  background: rgba(255, 80, 80, 0.16);
+}
+
+.cd-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.countdown-wrap {
+  display: grid;
+  gap: 10px;
+}
+
+.countdown-chip {
+  font-size: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 0.95;
+}
+
+.countdown-bar {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(10, 14, 22, 0.25);
+}
+
+.countdown-bar-fill {
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+
+  background: linear-gradient(
+    90deg,
+    rgba(255, 80, 80, 0.20),
+    rgba(255, 120, 190, 0.18),
+    rgba(120, 200, 255, 0.18)
+  );
+
+  transition: transform 180ms ease;
+}

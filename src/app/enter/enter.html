@@ -18,7 +18,8 @@
               autocomplete="nickname"
             />
             <small class="hint">
-              Seu acesso será criado localmente neste navegador. Para mudar de PC, use Exportar / Importar.
+              O seu acesso será criado localmente neste navegador. Utilize do Exportar / Importar
+              caso precise migrar as informações para outro navegador ou computador.
             </small>
           </label>
         </div>
@@ -32,6 +33,42 @@
           <button type="button" class="btn primary" (click)="enter()">Entrar</button>
         </div>
 
+        <section class="recent" *ngIf="recentAccesses.length">
+          <div class="recent-head">
+            <div class="recent-title">Acessos recentes</div>
+            <div class="recent-sub">Selecione um perfil já salvo neste navegador.</div>
+          </div>
+
+          <div class="recent-list">
+            <button
+              type="button"
+              class="recent-item"
+              *ngFor="let r of recentAccesses"
+              (click)="quickLogin(r)"
+            >
+              <div class="recent-left">
+                <div class="recent-name">
+                  {{ r.name }} -
+                  <span class="recent-meta">
+                    Último acesso: {{ formatIso(r.lastOpenAt || r.updatedAt || r.createdAt) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="recent-actions">
+                <button
+                  type="button"
+                  class="icon-btn danger"
+                  (click)="$event.stopPropagation(); openRemoveRecentModal(r)"
+                  title="Remover deste computador"
+                >
+                  <img src="/icons/delete.png" alt="remove" />
+                </button>
+              </div>
+            </button>
+          </div>
+        </section>
+
         <div class="error" *ngIf="error">
           {{ error }}
         </div>
@@ -39,14 +76,15 @@
         <div class="error" *ngIf="importError">
           {{ importError }}
         </div>
-
-        <div class="footer">
-          <span class="pill">VictorDevMuller</span>
-          <span class="dot">•</span>
-          <span class="pill">Export/Import JSON</span>
-          <span class="dot">•</span>
-          <span class="pill">Sync Code (oculto)</span>
-        </div>
+        <app-modal-excluir
+          [open]="deleteModalOpen"
+          title="Tem certeza de que deseja remover este acesso?"
+          message="ESTA AÇÃO APAGARÁ TODO O PERFIL E NÃO PODERÁ SER DESFEITA. Certifique-se de ter um backup (Exportar) desse Perfil para que possa acessá-lo novamente."
+          [itemLabel]="deleteTargetLabel"
+          [countdownSeconds]="5"
+          (cancel)="closeDeleteModal()"
+          (confirm)="confirmRemoveRecent()"
+        ></app-modal-excluir>
       </div>
     </section>
   </main>

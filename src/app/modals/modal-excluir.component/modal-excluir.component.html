@@ -1,0 +1,40 @@
+<div class="modal-backdrop" *ngIf="open" (click)="onBackdropClick()">
+  <div class="modal-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-title">{{ title }}</div>
+      <button type="button" class="icon-close" (click)="onCancel()" aria-label="Fechar">
+        ×
+      </button>
+    </header>
+
+    <section class="modal-body">
+      <p class="modal-item" *ngIf="itemLabel">
+        <span class="label">{{ itemLabel }}</span>
+      </p>
+      <p class="modal-message">
+        {{ message }}
+      </p>
+
+      <countdown
+        #cd
+        class="cd-hidden"
+        [config]="countdownConfig"
+        (event)="onCountdown($event)"
+      ></countdown>
+
+      <div class="countdown-wrap" *ngIf="remaining > 0">
+        <div class="countdown-bar" aria-hidden="true">
+          <div class="countdown-bar-fill" [style.transform]="'scaleX(' + progress + ')'"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="modal-actions">
+      <button type="button" class="btn ghost" (click)="onCancel()">Não</button>
+
+      <button type="button" class="btn danger" [disabled]="!canConfirm" (click)="onConfirm()">
+        Sim<span *ngIf="remaining > 0"> ({{ remaining }})</span>
+      </button>
+    </footer>
+  </div>
+</div>

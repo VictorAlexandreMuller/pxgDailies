@@ -3,14 +3,25 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { generateSyncCode } from '../core/utils/sync-code';
-import { findLatestDbByName, getActiveUser, loadDb, saveDb, setActiveUser } from '../core/data/storage';
+import {
+  findLatestDbByName,
+  getActiveUser,
+  loadDb,
+  removeDb,
+  saveDb,
+  setActiveUser,
+  listRecentAccesses,
+  RecentAccess,
+} from '../core/data/storage';
+
 import { PxgDbV1 } from '../core/models/pxg-db.model';
 import { PxgExportV1 } from '../core/models/pxg-export.model';
+import { ModalExcluirComponent } from '../modals/modal-excluir.component/modal-excluir.component';
 
 @Component({
   selector: 'app-enter',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ModalExcluirComponent],
   templateUrl: './enter.html',
   styleUrl: './enter.scss',
 })
@@ -18,12 +29,15 @@ export class EnterComponent implements OnInit {
   displayName = '';
   error = '';
   importError = '';
-
+  recentAccesses: RecentAccess[] = [];
+  deleteModalOpen = false;
+  deleteTarget: RecentAccess | null = null;
+  deleteTargetLabel = '';
   constructor(private readonly router: Router) {}
 
   ngOnInit(): void {
+    this.loadRecents();
     const active = getActiveUser();
-
     if (active) {
       const db = loadDb(active.name, active.syncCode);
       if (db) {
@@ -33,11 +47,63 @@ export class EnterComponent implements OnInit {
     }
   }
 
-  canExport(): boolean {
+  private loadRecents(): void {
+    this.recentAccesses = listRecentAccesses(8);
+  }
+
+  formatIso(iso?: string): string {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('pt-BR');
+  }
+
+  quickLogin(r: RecentAccess): void {
+    this.error = '';
+    this.importError = '';
+
+    const db = loadDb(r.name, r.syncCode) as PxgDbV1 | null;
+    if (!db) {
+      this.error = 'Não foi possível localizar este perfil no navegador.';
+      this.loadRecents();
+      return;
+    }
+
+    setActiveUser(r.name, r.syncCode);
+    this.router.navigateByUrl('/dailies');
+  }
+
+  openRemoveRecentModal(r: RecentAccess): void {
+    this.error = '';
+    this.importError = '';
+
+    this.deleteTarget = r;
+    this.deleteTargetLabel = r?.name ? `Perfil: ${r.name}` : 'Perfil selecionado';
+    this.deleteModalOpen = true;
+  }
+
+  closeDeleteModal(): void {
+    this.deleteModalOpen = false;
+    this.deleteTarget = null;
+    this.deleteTargetLabel = '';
+  }
+
+  confirmRemoveRecent(): void {
+    const r = this.deleteTarget;
+    if (!r) {
+      this.closeDeleteModal();
+      return;
+    }
+
     const active = getActiveUser();
-    if (!active) return false;
-    const db = loadDb(active.name, active.syncCode);
-    return !!db;
+    if (active && active.name === r.name && active.syncCode === r.syncCode) {
+      localStorage.removeItem('pxgDaily:ACTIVE_USER');
+    }
+
+    removeDb(r.name, r.syncCode);
+
+    this.closeDeleteModal();
+    this.loadRecents();
   }
 
   enter(): void {
@@ -92,6 +158,7 @@ export class EnterComponent implements OnInit {
 
     saveDb(name, code, fresh);
     setActiveUser(name, code);
+    this.loadRecents();
     this.router.navigateByUrl('/dailies');
   }
 
@@ -149,7 +216,9 @@ export class EnterComponent implements OnInit {
         if (parsed?.exportVersion === 1 && parsed?.db && typeof parsed?.syncCode === 'string') {
           const p = parsed as PxgExportV1;
           db = p.db;
-          syncCode = String(p.syncCode || '').trim().toUpperCase();
+          syncCode = String(p.syncCode || '')
+            .trim()
+            .toUpperCase();
         } else {
           db = parsed as PxgDbV1;
           syncCode = generateSyncCode(4);
@@ -164,6 +233,8 @@ export class EnterComponent implements OnInit {
 
         saveDb(name, syncCode, db);
         setActiveUser(name, syncCode);
+
+        this.loadRecents();
 
         this.router.navigateByUrl('/dailies');
       } catch (e: any) {

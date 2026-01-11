@@ -141,16 +141,6 @@
   border-color: rgba(120, 200, 255, 0.55);
 }
 
-.import-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  input[type='file'] {
-    display: none;
-  }
-}
-
 /* ====== Topbar ====== */
 .topbar {
   display: flex;

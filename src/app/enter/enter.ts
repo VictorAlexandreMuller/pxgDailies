@@ -2,10 +2,10 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-
 import { generateSyncCode } from '../core/utils/sync-code';
-import { getActiveUser, loadDb, saveDb, setActiveUser } from '../core/data/storage';
+import { findLatestDbByName, getActiveUser, loadDb, saveDb, setActiveUser } from '../core/data/storage';
 import { PxgDbV1 } from '../core/models/pxg-db.model';
+import { PxgExportV1 } from '../core/models/pxg-export.model';
 
 @Component({
   selector: 'app-enter',
@@ -16,62 +16,43 @@ import { PxgDbV1 } from '../core/models/pxg-db.model';
 })
 export class EnterComponent implements OnInit {
   displayName = '';
-  syncCode = '';
   error = '';
+  importError = '';
 
   constructor(private readonly router: Router) {}
 
   ngOnInit(): void {
-    // SSR-safe: no servidor getActiveUser() retorna null (por causa do isBrowser()).
     const active = getActiveUser();
 
     if (active) {
-      // Preenche campos (caso o usuário caia no /enter manualmente)
-      this.displayName = active.name;
-      this.syncCode = active.syncCode;
-
-      // ✅ auto-login: só redireciona se o DB existir para essa combinação
       const db = loadDb(active.name, active.syncCode);
       if (db) {
+        this.displayName = active.name;
         this.router.navigateByUrl('/dailies');
       }
     }
   }
 
-  private normalizeCode(code: string): string {
-    return code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  }
-
-  generateNewCode(): void {
-    this.syncCode = generateSyncCode(4);
-    this.error = '';
-  }
-
-  async copyCode(): Promise<void> {
-    if (!this.syncCode) return;
-    await navigator.clipboard.writeText(this.normalizeCode(this.syncCode));
-    alert('Sync Code copiado.');
+  canExport(): boolean {
+    const active = getActiveUser();
+    if (!active) return false;
+    const db = loadDb(active.name, active.syncCode);
+    return !!db;
   }
 
   enter(): void {
     this.error = '';
 
     const name = this.displayName.trim();
-    const code = this.normalizeCode(this.syncCode);
-
     if (!name) {
       this.error = 'Informe seu nome.';
       return;
     }
 
-    if (!code || code.length !== 4) {
-      this.error = 'Informe o seu Sync Code (ou gere um).';
-      return;
-    }
+    const found = findLatestDbByName(name);
+    if (found?.db && found?.syncCode) {
+      const existing = found.db as PxgDbV1;
 
-    const existing = loadDb(name, code);
-
-    if (existing) {
       const updated: PxgDbV1 = {
         ...existing,
         profile: {
@@ -86,13 +67,15 @@ export class EnterComponent implements OnInit {
         },
       };
 
-      saveDb(name, code, updated);
-      setActiveUser(name, code);
+      saveDb(name, found.syncCode, updated);
+      setActiveUser(name, found.syncCode);
       this.router.navigateByUrl('/dailies');
       return;
     }
 
+    const code = generateSyncCode(4);
     const now = new Date().toISOString();
+
     const fresh: PxgDbV1 = {
       schemaVersion: 1,
       profile: {
@@ -110,5 +93,91 @@ export class EnterComponent implements OnInit {
     saveDb(name, code, fresh);
     setActiveUser(name, code);
     this.router.navigateByUrl('/dailies');
+  }
+
+  exportJsonDownload(): void {
+    this.error = '';
+
+    const active = getActiveUser();
+    if (!active) {
+      this.error = 'Nenhum usuário ativo para exportar.';
+      return;
+    }
+
+    const db = loadDb(active.name, active.syncCode) as PxgDbV1 | null;
+    if (!db) {
+      this.error = 'Não foi possível localizar os dados para exportar.';
+      return;
+    }
+
+    const payload: PxgExportV1 = {
+      exportVersion: 1,
+      syncCode: active.syncCode,
+      db,
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const safeName = active.name.trim().replace(/\s+/g, '_');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pxgDaily-${safeName}-${active.syncCode}.json`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  }
+
+  onImportFileSelected(evt: Event): void {
+    this.importError = '';
+    this.error = '';
+
+    const input = evt.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      try {
+        const raw = String(reader.result ?? '');
+        const parsed = JSON.parse(raw);
+
+        let db: PxgDbV1;
+        let syncCode: string;
+
+        if (parsed?.exportVersion === 1 && parsed?.db && typeof parsed?.syncCode === 'string') {
+          const p = parsed as PxgExportV1;
+          db = p.db;
+          syncCode = String(p.syncCode || '').trim().toUpperCase();
+        } else {
+          db = parsed as PxgDbV1;
+          syncCode = generateSyncCode(4);
+        }
+
+        if (!db || db.schemaVersion !== 1 || !db.profile || !Array.isArray(db.characters)) {
+          throw new Error('Arquivo JSON inválido para o PXG Dailies.');
+        }
+
+        const name = String(db.profile.displayName ?? '').trim();
+        if (!name) throw new Error('Arquivo inválido: displayName ausente.');
+
+        saveDb(name, syncCode, db);
+        setActiveUser(name, syncCode);
+
+        this.router.navigateByUrl('/dailies');
+      } catch (e: any) {
+        this.importError = e?.message ?? 'Falha ao importar.';
+      } finally {
+        input.value = '';
+      }
+    };
+
+    reader.onerror = () => {
+      this.importError = 'Falha ao ler o arquivo.';
+      input.value = '';
+    };
+
+    reader.readAsText(file);
   }
 }

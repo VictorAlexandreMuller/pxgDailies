@@ -7,10 +7,6 @@
       <div class="title">PXG Dailies</div>
       <div class="sub">
         <span><strong>Usuário: </strong>{{ data.profile.displayName }}</span>
-        <span class="dot">•</span>
-        <span
-          ><strong>Sync Code: </strong><code>{{ syncCode }}</code></span
-        >
       </div>
     </div>
 
@@ -20,10 +16,6 @@
         Exportar (Copiar)
       </button>
 
-      <label class="btn ghost import-btn" title="Importar JSON">
-        <input type="file" accept="application/json" (change)="onImportFileSelected($event)" />
-        Importar
-      </label>
       <button
         type="button"
         class="btn ghost"
@@ -41,9 +33,6 @@
   <main class="shell">
     <section class="glass">
       <div class="glass-inner">
-        <section class="error" *ngIf="importError">
-          {{ importError }}
-        </section>
 
         <section class="add">
           <input

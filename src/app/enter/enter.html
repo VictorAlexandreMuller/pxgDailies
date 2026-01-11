@@ -6,45 +6,29 @@
       <header class="brand">
         <div class="logo">PXG Dailies</div>
       </header>
+
       <div class="glass-inner">
         <div class="fields">
           <label class="field">
             <input
               type="text"
-              placeholder="Nickname"
+              placeholder="Entre com um nome..."
               [(ngModel)]="displayName"
               (keyup.enter)="enter()"
               autocomplete="nickname"
             />
-          </label>
-
-          <label class="field">
-            <input
-              type="text"
-              placeholder="Sync Code"
-              [(ngModel)]="syncCode"
-              (keyup.enter)="enter()"
-              autocomplete="off"
-              spellcheck="false"
-              maxlength="4"
-            />
             <small class="hint">
-              Este código é a sua chave do seu registro no navegador.
+              Seu acesso será criado localmente neste navegador. Para mudar de PC, use Exportar / Importar.
             </small>
           </label>
         </div>
 
         <div class="actions">
-          <button type="button" class="btn" (click)="generateNewCode()">Gerar Sync Code</button>
-          <button
-            type="button"
-            class="btn ghost"
-            [disabled]="!syncCode"
-            (click)="copyCode()"
-            title="Copiar Sync Code"
-          >
-            Copiar
-          </button>
+          <label class="btn ghost import-btn" title="Importar JSON">
+            <input type="file" accept="application/json" (change)="onImportFileSelected($event)" />
+            Importar
+          </label>
+
           <button type="button" class="btn primary" (click)="enter()">Entrar</button>
         </div>
 
@@ -52,12 +36,16 @@
           {{ error }}
         </div>
 
+        <div class="error" *ngIf="importError">
+          {{ importError }}
+        </div>
+
         <div class="footer">
           <span class="pill">VictorDevMuller</span>
           <span class="dot">•</span>
-          <span class="pill">Import/Export JSON</span>
+          <span class="pill">Export/Import JSON</span>
           <span class="dot">•</span>
-          <span class="pill">Sync Code</span>
+          <span class="pill">Sync Code (oculto)</span>
         </div>
       </div>
     </section>

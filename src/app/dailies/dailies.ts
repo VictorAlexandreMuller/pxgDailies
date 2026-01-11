@@ -12,6 +12,7 @@ import { currentKey } from '../core/utils/period-keys';
 import { Character, PxgDbV1, Task, Period } from '../core/models/pxg-db.model';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { PxgExportV1 } from '../core/models/pxg-export.model';
 
 @Component({
   selector: 'app-dailies',
@@ -26,7 +27,6 @@ export class DailiesComponent implements OnDestroy {
   db: PxgDbV1 | null = null;
   archivedModalOpen = false;
   newCharacterName = '';
-  importError = '';
 
   activeCharacterId: string | null = null;
 
@@ -194,7 +194,13 @@ export class DailiesComponent implements OnDestroy {
   exportJsonDownload(): void {
     if (!this.db) return;
 
-    const blob = new Blob([JSON.stringify(this.db, null, 2)], { type: 'application/json' });
+    const payload: PxgExportV1 = {
+      exportVersion: 1,
+      syncCode: this.syncCode,
+      db: this.db,
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
     const safeName = this.displayName.trim().replace(/\s+/g, '_');
@@ -210,46 +216,6 @@ export class DailiesComponent implements OnDestroy {
     if (!this.db) return;
     await navigator.clipboard.writeText(JSON.stringify(this.db, null, 2));
     alert('JSON copiado para a área de transferência.');
-  }
-
-  onImportFileSelected(evt: Event): void {
-    this.importError = '';
-    const input = evt.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const raw = String(reader.result ?? '');
-        const parsed = JSON.parse(raw) as PxgDbV1;
-
-        if (
-          !parsed ||
-          parsed.schemaVersion !== 1 ||
-          !parsed.profile ||
-          !Array.isArray(parsed.characters)
-        ) {
-          throw new Error('Arquivo JSON inválido para o pxgDaily.');
-        }
-
-        saveDb(this.displayName, this.syncCode, parsed);
-        this.store.load(this.displayName, this.syncCode);
-
-        alert('Import concluído com sucesso.');
-      } catch (e: any) {
-        this.importError = e?.message ?? 'Falha ao importar.';
-      } finally {
-        input.value = '';
-      }
-    };
-
-    reader.onerror = () => {
-      this.importError = 'Falha ao ler o arquivo.';
-      input.value = '';
-    };
-
-    reader.readAsText(file);
   }
 
   logout(): void {

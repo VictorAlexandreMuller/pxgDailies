@@ -232,3 +232,13 @@
     flex: 1;
   }
 }
+
+.import-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  input[type='file'] {
+    display: none;
+  }
+}

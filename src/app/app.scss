@@ -1,0 +1,73 @@
+.credit-float {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9999;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 12px;
+  border-radius: 16px;
+
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  color: rgba(233, 238, 245, 0.88);
+  font-size: 12px;
+  letter-spacing: 0.2px;
+
+  animation: credit-floaty 6s ease-in-out infinite;
+
+  pointer-events: none;
+  user-select: none;
+
+  overflow: hidden;
+}
+
+.credit-float::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: radial-gradient(
+    360px 120px at 25% 20%,
+    rgba(255, 255, 255, 0.18),
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+.credit-text {
+  opacity: 0.75;
+}
+
+.credit-name {
+  font-weight: 900;
+  color: rgba(233, 238, 245, 0.95);
+}
+
+.credit-heart {
+  color: #ff5c8a;
+  margin-left: 4px;
+  filter: drop-shadow(0 0 6px rgba(255, 92, 138, 0.45));
+}
+
+@keyframes credit-floaty {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+
+@media (max-width: 520px) {
+  .credit-float {
+    right: 12px;
+    bottom: 12px;
+    padding: 9px 10px;
+    border-radius: 14px;
+    font-size: 11px;
+  }
+}

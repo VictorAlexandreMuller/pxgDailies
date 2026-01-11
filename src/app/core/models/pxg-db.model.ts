@@ -26,7 +26,11 @@ export interface Task {
   id: string;
   title: string;
   period: Period;
+  origin?: 'system' | 'user';
+  archivedAt?: string;
   doneForKey?: string;
   doingForKey?: string;
+  doneAt?: string;
+  resetAt?: string;
 }
 

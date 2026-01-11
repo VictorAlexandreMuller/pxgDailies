@@ -8,23 +8,33 @@
       <div class="sub">
         <span><strong>Usuário: </strong>{{ data.profile.displayName }}</span>
         <span class="dot">•</span>
-        <span><strong>Sync Code: </strong><code>{{ syncCode }}</code></span>
+        <span
+          ><strong>Sync Code: </strong><code>{{ syncCode }}</code></span
+        >
       </div>
     </div>
 
     <div class="right">
       <button type="button" class="btn ghost" (click)="exportJsonDownload()">
-        Exportar (Download)
+        Exportar
       </button>
-      <button type="button" class="btn ghost" (click)="exportJsonClipboard()">
+      <button type="button" class="btn ghost" (click)="exportJsonClipboard()" style="display: none;">
         Exportar (Copiar)
       </button>
 
       <label class="btn ghost import-btn" title="Importar JSON">
         <input type="file" accept="application/json" (change)="onImportFileSelected($event)" />
-        Importar JSON
+        Importar
       </label>
-
+      <button
+        type="button"
+        class="btn ghost"
+        (click)="archivedModalOpen = true"
+        [disabled]="!hasArchivedForActive()"
+        title="Ver tasks arquivadas do boneco ativo"
+      >
+        Arquivados
+      </button>
       <button type="button" class="btn primary" (click)="logout()">Sair</button>
     </div>
   </header>
@@ -84,24 +94,32 @@
                   </button>
                 </div>
 
-                <!-- CONCLUÍDAS dentro do card do período (abaixo do título, acima das tasks) -->
-                <section class="done-panel done-inside" *ngIf="tasksOf(c, p).length">
+                <!-- CONCLUÍDAS dentro do card do período -->
+                <section
+                  class="done-panel done-inside"
+                  *ngIf="tasksOf(c, p).length"
+                  [class.all-done]="allDoneForPeriod(c, p)"
+                >
                   <button type="button" class="done-toggle" (click)="toggleDonePanel(p)">
                     <span class="caret" [class.open]="donePanelOpen[p]">›</span>
                     <span class="done-title">Concluídas</span>
                     <span class="done-count">
                       {{ doneTasksOfPeriod(c, p).length }}/{{ tasksOf(c, p).length }}
                     </span>
-
                   </button>
 
                   <div class="done-body" *ngIf="donePanelOpen[p]">
+                    <!-- Mensagem quando NÃO há concluídas -->
+                    <div class="muted" *ngIf="doneTasksOfPeriod(c, p).length === 0">
+                      {{ noDoneMessage(p) }}
+                    </div>
+
+                    <!-- Lista quando HÁ concluídas -->
                     <div class="done-item" *ngFor="let t of doneTasksOfPeriod(c, p)">
                       <div class="task-row done">
                         <div class="task-title" [title]="t.title">{{ t.title }}</div>
 
                         <div class="task-actions">
-                          <!-- desmarcar: volta para a coluna automaticamente -->
                           <button
                             type="button"
                             class="icon-btn check-btn on"
@@ -111,8 +129,8 @@
                             <span class="check-icon" aria-hidden="true"></span>
                           </button>
 
-                          <!-- opcional: manter editar/excluir também aqui -->
                           <button
+                            *ngIf="t.origin !== 'system'"
                             type="button"
                             class="icon-btn"
                             (click)="editTask(c.id, t.id)"
@@ -121,7 +139,9 @@
                             <img src="/icons/edit.png" alt="edit" />
                           </button>
 
+                          <!-- USER: exclui -->
                           <button
+                            *ngIf="t.origin !== 'system'; else archiveBtnDone"
                             type="button"
                             class="icon-btn"
                             (click)="deleteTask(c.id, t.id)"
@@ -129,6 +149,18 @@
                           >
                             <img src="/icons/delete.png" alt="delete" />
                           </button>
+
+                          <!-- SYSTEM: arquiva -->
+                          <ng-template #archiveBtnDone>
+                            <button
+                              type="button"
+                              class="icon-btn"
+                              (click)="archiveTask(c.id, t.id)"
+                              title="Arquivar"
+                            >
+                              <img src="/icons/arquivar.png" alt="arquivar" />
+                            </button>
+                          </ng-template>
                         </div>
                       </div>
                     </div>
@@ -153,16 +185,24 @@
 
                       <button
                         type="button"
-                        class="icon-btn"
+                        class="icon-btn focus-btn"
                         (click)="startFocusCooldown(c.id, t)"
-                        title="Fazendo"
                         [disabled]="isDoneNow(t) || isFocusCoolingDown(t.id)"
-                        [title]="isFocusCoolingDown(t.id) ? ('Cooldown: ' + (focusCooldownLeft(t.id)) + 's') : 'Fazendo'"
+                        title="Fazendo"
                       >
                         <img src="/icons/focus.png" alt="doing" />
+
+                        <!-- badge com ngx-countdown -->
+                        <countdown
+                          *ngIf="isFocusCoolingDown(t.id)"
+                          class="focus-badge"
+                          [config]="focusConfig(t.id)"
+                          (event)="onFocusCountdownEvent($event, c.id, t)"
+                        ></countdown>
                       </button>
 
                       <button
+                        *ngIf="t.origin !== 'system'"
                         type="button"
                         class="icon-btn"
                         (click)="editTask(c.id, t.id)"
@@ -171,7 +211,9 @@
                         <img src="/icons/edit.png" alt="edit" />
                       </button>
 
+                      <!-- USER: exclui -->
                       <button
+                        *ngIf="t.origin !== 'system'; else archiveBtnOpen"
                         type="button"
                         class="icon-btn"
                         (click)="deleteTask(c.id, t.id)"
@@ -179,6 +221,18 @@
                       >
                         <img src="/icons/delete.png" alt="delete" />
                       </button>
+
+                      <!-- SYSTEM: arquiva -->
+                      <ng-template #archiveBtnOpen>
+                        <button
+                          type="button"
+                          class="icon-btn"
+                          (click)="archiveTask(c.id, t.id)"
+                          title="Arquivar"
+                        >
+                          <img src="/icons/arquivar.png" alt="arquivar" />
+                        </button>
+                      </ng-template>
                     </div>
                   </div>
                 </div>
@@ -204,16 +258,15 @@
   <div class="confirm-card">
     <div class="confirm-title">Pergunta rápida</div>
     <div class="confirm-text">
-      Você conseguiu concluir a task <strong>{{ focusPromptTaskTitle }}</strong>?
+      Você conseguiu concluir a task <strong>{{ focusPromptTaskTitle }}</strong
+      >?
     </div>
 
     <div class="confirm-actions">
       <button type="button" class="btn confirm-yes" (click)="confirmFocusResult(true)">
         Sim, concluí
       </button>
-      <button type="button" class="btn ghost" (click)="confirmFocusResult(false)">
-        Não
-      </button>
+      <button type="button" class="btn ghost" (click)="confirmFocusResult(false)">Não</button>
     </div>
   </div>
 </div>
@@ -228,3 +281,33 @@
     </main>
   </div>
 </ng-template>
+
+<!-- ====== MODAL: Arquivados ====== -->
+<div class="confirm-overlay" *ngIf="archivedModalOpen">
+  <div class="confirm-card">
+    <div class="confirm-title">Arquivados</div>
+
+    <div class="muted" *ngIf="archivedTasksOfActive().length === 0">
+      Nenhuma task arquivada para este boneco.
+    </div>
+
+    <div class="archived-list" *ngIf="archivedTasksOfActive().length">
+      <div class="archived-item" *ngFor="let t of archivedTasksOfActive()">
+        <div class="archived-left">
+          <div class="archived-name" [title]="t.title">{{ t.title }}</div>
+          <div class="archived-meta">{{ periodLabel(t.period) }}</div>
+        </div>
+
+        <div class="archived-actions">
+          <button type="button" class="btn" (click)="restoreArchivedTask(activeCharacterId!, t.id)">
+            Resgatar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="confirm-actions">
+      <button type="button" class="btn ghost" (click)="archivedModalOpen = false">Fechar</button>
+    </div>
+  </div>
+</div>

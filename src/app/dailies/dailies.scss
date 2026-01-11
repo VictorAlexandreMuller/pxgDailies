@@ -16,9 +16,7 @@
 
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 18px 50px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
@@ -29,11 +27,7 @@
   position: absolute;
   inset: -2px;
   border-radius: 18px;
-  background: radial-gradient(
-    700px 220px at 30% 10%,
-    rgba(255, 255, 255, 0.18),
-    transparent 60%
-  );
+  background: radial-gradient(700px 220px at 30% 10%, rgba(255, 255, 255, 0.18), transparent 60%);
   pointer-events: none;
 }
 
@@ -65,11 +59,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.35),
-    rgba(0, 0, 0, 0.55)
-  );
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.55));
 }
 
 .shell {
@@ -84,9 +74,7 @@
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 22px 60px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   overflow: hidden;
@@ -96,11 +84,7 @@
   content: '';
   position: absolute;
   inset: -2px;
-  background: radial-gradient(
-    700px 220px at 30% 10%,
-    rgba(255, 255, 255, 0.18),
-    transparent 60%
-  );
+  background: radial-gradient(700px 220px at 30% 10%, rgba(255, 255, 255, 0.18), transparent 60%);
   pointer-events: none;
 }
 
@@ -120,21 +104,18 @@
   letter-spacing: 0.2px;
 
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.1);
   color: #eef3fb;
 
   cursor: pointer;
-  transition:
-    transform 120ms ease,
-    background 160ms ease,
-    border-color 160ms ease,
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease,
     opacity 160ms ease;
 }
 
 .btn:hover {
   transform: translateY(-1px);
   background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.20);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .btn:active {
@@ -153,11 +134,7 @@
 
 .btn.primary {
   border-color: rgba(120, 200, 255, 0.35);
-  background: linear-gradient(
-    135deg,
-    rgba(120, 200, 255, 0.22),
-    rgba(255, 120, 190, 0.16)
-  );
+  background: linear-gradient(135deg, rgba(120, 200, 255, 0.22), rgba(255, 120, 190, 0.16));
 }
 
 .btn.primary:hover {
@@ -180,7 +157,7 @@
   justify-content: space-between;
   gap: 14px;
   align-items: flex-start;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .title {
@@ -202,7 +179,7 @@
     padding: 2px 8px;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(10, 14, 22, 0.20);
+    background: rgba(10, 14, 22, 0.2);
   }
 
   .dot {
@@ -233,7 +210,7 @@
 }
 
 .empty {
-  border: 1px dashed rgba(255, 255, 255, 0.20);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
   border-radius: 16px;
   padding: 18px;
   color: rgba(233, 238, 245, 0.85);
@@ -258,10 +235,7 @@
     border: 1px solid rgba(255, 255, 255, 0.12);
     outline: none;
 
-    transition:
-      transform 120ms ease,
-      border-color 160ms ease,
-      background 160ms ease;
+    transition: transform 120ms ease, border-color 160ms ease, background 160ms ease;
   }
 
   input::placeholder {
@@ -294,7 +268,7 @@
   gap: 10px;
   flex-wrap: wrap;
   padding: 6px 2px 12px 2px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 12px;
 }
 
@@ -311,10 +285,7 @@
   color: rgba(233, 238, 245, 0.92);
   cursor: pointer;
 
-  transition:
-    transform 120ms ease,
-    background 160ms ease,
-    border-color 160ms ease;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease;
 }
 
 .tab:hover {
@@ -324,7 +295,7 @@
 }
 
 .tab.active {
-  border-color: rgba(120, 200, 255, 0.40);
+  border-color: rgba(120, 200, 255, 0.4);
   background: rgba(120, 200, 255, 0.12);
 }
 
@@ -362,7 +333,7 @@
 
 .col {
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
   padding: 12px;
 
@@ -393,7 +364,7 @@
   gap: 12px;
   padding: 10px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(10, 14, 22, 0.22);
   margin-bottom: 10px;
 }
@@ -408,9 +379,50 @@
   text-overflow: ellipsis;
 }
 
+/* ====== Ações das tasks menores (sem afetar navbar / botões gerais) ====== */
 .task-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px; /* antes: 8px */
+}
+
+/* Só reduz os botões que ficam dentro das linhas de task */
+.task-row .icon-btn {
+  width: 30px; /* antes: 34px */
+  height: 30px; /* antes: 34px */
+  border-radius: 9px;
+}
+
+/* Ícones um pouco menores para acompanhar o botão */
+.task-row .icon-btn img {
+  width: 16px; /* antes: 18px */
+  height: 16px; /* antes: 18px */
+}
+
+/* Checkbox também reduz proporcionalmente */
+.task-row .check-btn .check-icon {
+  width: 16px; /* antes: 18px */
+  height: 16px; /* antes: 18px */
+  border-radius: 5px;
+}
+
+/* Ajusta o “check” interno para o novo tamanho */
+.task-row .check-btn .check-icon::after {
+  left: 4px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+}
+
+/* Badge do focus acompanha o novo botão */
+.task-row .focus-badge {
+  top: -7px;
+  right: -7px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  font-size: 11px;
 }
 
 /* ====== Icon Buttons ====== */
@@ -424,10 +436,7 @@
   display: grid;
   place-items: center;
 
-  transition:
-    transform 120ms ease,
-    background 160ms ease,
-    border-color 160ms ease,
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease,
     opacity 160ms ease;
 }
 
@@ -483,13 +492,10 @@
   display: inline-block;
   border-radius: 6px;
   border: 2px solid rgba(233, 238, 245, 0.75);
-  background: rgba(10, 14, 22, 0.20);
+  background: rgba(10, 14, 22, 0.2);
   position: relative;
 
-  transition:
-    transform 120ms ease,
-    border-color 160ms ease,
-    background 160ms ease,
+  transition: transform 120ms ease, border-color 160ms ease, background 160ms ease,
     opacity 160ms ease;
 }
 
@@ -524,14 +530,8 @@
 
 .task-row.done {
   border-color: rgba(90, 200, 120, 0.55);
-  background: linear-gradient(
-    135deg,
-    rgba(90, 200, 120, 0.22),
-    rgba(90, 200, 120, 0.12)
-  );
-  box-shadow:
-    inset 0 0 0 1px rgba(90, 200, 120, 0.35),
-    0 6px 18px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(135deg, rgba(90, 200, 120, 0.22), rgba(90, 200, 120, 0.12));
+  box-shadow: inset 0 0 0 1px rgba(90, 200, 120, 0.35), 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
 .task-row.done .task-title {
@@ -556,7 +556,7 @@
 /* ====== Concluídas (accordion) ====== */
 .done-panel {
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(10, 14, 22, 0.18);
   overflow: hidden;
   margin-bottom: 12px;
@@ -575,11 +575,11 @@
   color: rgba(233, 238, 245, 0.92);
   cursor: pointer;
 
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .done-toggle:hover {
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .caret {
@@ -608,7 +608,7 @@
   padding: 2px 10px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(10, 14, 22, 0.20);
+  background: rgba(10, 14, 22, 0.2);
   font-size: 12px;
   opacity: 0.85;
 }
@@ -625,9 +625,17 @@
 /* ====== CONCLUÍDAS (dentro do card do período) - verde militar com opacidade alta ====== */
 .done-panel.done-inside {
   border-color: rgba(75, 83, 32, 0.85);
-  box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.28),
-    inset 0 0 0 1px rgba(75, 83, 32, 0.35);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(75, 83, 32, 0.35);
+}
+
+/* quando 100% das tasks do período estão concluídas */
+.done-panel.done-inside.all-done {
+  background: rgba(75, 83, 32, 0.35); /* verde escuro com opacidade */
+}
+
+/* opcional: reforça o header do accordion também */
+.done-panel.done-inside.all-done .done-toggle {
+  background: rgba(75, 83, 32, 0.22);
 }
 
 /* ====== Modal Pergunta pós-focus ====== */
@@ -686,4 +694,84 @@
 .confirm-yes:hover {
   background: rgba(75, 83, 32, 0.65);
   border-color: rgba(75, 83, 32, 0.95);
+}
+
+/* botão focus com badge */
+.focus-btn {
+  position: relative;
+}
+
+/* contador “em cima” do botão */
+.focus-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(10, 14, 22, 0.85);
+  color: rgba(233, 238, 245, 0.95);
+
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.35);
+  pointer-events: none; // importante: não “roubar” clique do botão
+}
+
+.task-row .icon-btn:disabled {
+  opacity: 0.22;
+  filter: grayscale(1);
+}
+
+.archived-list {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 14px;
+}
+
+.archived-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 10px;
+  border-radius: 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 14, 22, 0.35);
+}
+
+.archived-left {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.archived-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: rgba(233, 238, 245, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.archived-meta {
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.archived-actions .btn {
+  height: 36px;
+  border-radius: 12px;
 }

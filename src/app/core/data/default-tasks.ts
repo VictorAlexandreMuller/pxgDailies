@@ -44,6 +44,7 @@ export const DEFAULT_TASK_SIGNATURES = [
   ['weekly', 'Terror Gyarados'],
   ['weekly', 'Terror Gengar/Alaka'],
   ['weekly', 'Terror Zoroark'],
+  ['weekly', 'Turnback Cave'],
 
   ['monthly', 'Clones'],
   ['monthly', 'NW Secret Lab'],

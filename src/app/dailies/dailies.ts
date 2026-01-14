@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -21,6 +21,7 @@ import { ModalExcluirComponent } from '../modals/modal-excluir.component/modal-e
   imports: [CommonModule, FormsModule, CountdownComponent, DragDropModule, ModalExcluirComponent],
   templateUrl: './dailies.html',
   styleUrl: './dailies.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DailiesComponent implements OnDestroy {
   displayName = '';

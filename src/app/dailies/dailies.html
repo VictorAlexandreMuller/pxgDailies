@@ -1,5 +1,5 @@
 <div class="dailies-page" *ngIf="db as data; else loading">
-  <div class="bg" [style.background-image]="bgStyle()"></div>
+  <div class="bg" [style.background-image]="bgStyleStr"></div>
 
   <!-- NAVBAR FIXA -->
   <header class="topbar topbar-fixed">
@@ -25,6 +25,7 @@
       >
         Arquivados
       </button>
+
       <!-- Wallpaper dropdown -->
       <select
         class="btn ghost wallpaper-select"
@@ -77,81 +78,158 @@
             </button>
           </nav>
 
-          <article class="card" *ngIf="activeCharacter as c">
+          <!-- CARD DO BONECO ATIVO + LISTAS PRÉ-CALCULADAS -->
+          <article class="card" *ngIf="vm() as v">
             <div class="columns">
               <div class="col" *ngFor="let p of periods">
-                <div class="col-head">
-                  <h3>{{ periodLabel(p) }}</h3>
-                  <button
-                    type="button"
-                    class="icon-btn add-btn"
-                    (click)="addTask(c.id, p)"
-                    title="Adicionar task"
+                <ng-container *ngIf="v.byPeriod[p] as pv">
+                  <div class="col-head">
+                    <h3>{{ periodLabel(p) }}</h3>
+
+                    <button
+                      type="button"
+                      class="icon-btn add-btn"
+                      (click)="addTask(v.character.id, p)"
+                      title="Adicionar task"
+                    >
+                      <img src="/icons/add2.png" alt="add" />
+                    </button>
+                  </div>
+
+                  <!-- CONCLUÍDAS dentro do card do período -->
+                  <section
+                    class="done-panel done-inside"
+                    *ngIf="pv.total"
+                    [class.all-done]="pv.allDone"
                   >
-                    <img src="/icons/add2.png" alt="add" />
-                  </button>
-                </div>
+                    <button type="button" class="done-toggle" (click)="toggleDonePanel(p)">
+                      <span class="caret" [class.open]="donePanelOpen[p]">›</span>
+                      <span class="done-title">Concluídas</span>
+                      <span class="done-count">{{ pv.doneCount }}/{{ pv.total }}</span>
+                    </button>
 
-                <!-- CONCLUÍDAS dentro do card do período -->
-                <section
-                  class="done-panel done-inside"
-                  *ngIf="tasksOf(c, p).length"
-                  [class.all-done]="allDoneForPeriod(c, p)"
-                >
-                  <button type="button" class="done-toggle" (click)="toggleDonePanel(p)">
-                    <span class="caret" [class.open]="donePanelOpen[p]">›</span>
-                    <span class="done-title">Concluídas</span>
-                    <span class="done-count">
-                      {{ doneTasksOfPeriod(c, p).length }}/{{ tasksOf(c, p).length }}
-                    </span>
-                  </button>
+                    <div class="done-body" *ngIf="donePanelOpen[p]">
+                      <!-- Mensagem quando NÃO há concluídas -->
+                      <div class="muted" *ngIf="pv.doneCount === 0">
+                        {{ noDoneMessage(p) }}
+                      </div>
 
-                  <div class="done-body" *ngIf="donePanelOpen[p]">
-                    <!-- Mensagem quando NÃO há concluídas -->
-                    <div class="muted" *ngIf="doneTasksOfPeriod(c, p).length === 0">
-                      {{ noDoneMessage(p) }}
+                      <!-- Lista quando HÁ concluídas -->
+                      <div class="done-item" *ngFor="let t of pv.done; trackBy: trackByTaskId">
+                        <div class="task-row done">
+                          <div class="task-title" [title]="t.title">{{ t.title }}</div>
+
+                          <div class="task-actions">
+                            <button
+                              type="button"
+                              class="icon-btn check-btn on"
+                              (click)="toggleDone(v.character.id, t.id)"
+                            >
+                              <span class="check-icon" aria-hidden="true"></span>
+                            </button>
+
+                            <button
+                              *ngIf="t.origin !== 'system'"
+                              type="button"
+                              class="icon-btn"
+                              (click)="editTask(v.character.id, t.id)"
+                            >
+                              <img src="/icons/edit.png" alt="edit" />
+                            </button>
+
+                            <!-- USER: exclui -->
+                            <button
+                              *ngIf="t.origin !== 'system'; else archiveBtnDone"
+                              type="button"
+                              class="icon-btn"
+                              (click)="openDeleteTaskModal(v.character.id, t.id)"
+                              title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
+                            >
+                              <img src="/icons/delete.png" alt="delete" />
+                            </button>
+
+                            <!-- SYSTEM: arquiva -->
+                            <ng-template #archiveBtnDone>
+                              <button
+                                type="button"
+                                class="icon-btn"
+                                (click)="archiveTask(v.character.id, t.id)"
+                                title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
+                              >
+                                <img src="/icons/arquivar.png" alt="arquivar" />
+                              </button>
+                            </ng-template>
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                  </section>
 
-                    <!-- Lista quando HÁ concluídas -->
-                    <div class="done-item" *ngFor="let t of doneTasksOfPeriod(c, p)">
-                      <div class="task-row done">
+                  <!-- TASKS ABERTAS do período -->
+                  <div
+                    class="task-drop"
+                    cdkDropList
+                    [cdkDropListData]="pv.open"
+                    (cdkDropListDropped)="onDropOpen($event, v.character.id, p)"
+                  >
+                    <div
+                      class="task"
+                      *ngFor="let t of pv.open; trackBy: trackByTaskId"
+                      cdkDrag
+                    >
+                      <div class="task-row" [class.doing]="isDoingNow(t)">
                         <div class="task-title" [title]="t.title">{{ t.title }}</div>
 
                         <div class="task-actions">
                           <button
                             type="button"
-                            class="icon-btn check-btn on"
-                            (click)="toggleDone(c.id, t.id)"
+                            class="icon-btn check-btn"
+                            (click)="toggleDone(v.character.id, t.id)"
                           >
                             <span class="check-icon" aria-hidden="true"></span>
+                          </button>
+
+                          <button
+                            type="button"
+                            class="icon-btn focus-btn"
+                            (click)="startFocusCooldown(v.character.id, t)"
+                            [disabled]="isFocusCoolingDown(t.id)"
+                            title="O modo Foco deve ser utilizado para te ajudar a lembrar dos seus objetivos."
+                          >
+                            <img src="/icons/focus.png" alt="doing" />
+
+                            <countdown
+                              *ngIf="isFocusCoolingDown(t.id)"
+                              class="focus-badge"
+                              [config]="focusConfig(t.id)"
+                              (event)="onFocusCountdownEvent($event, v.character.id, t)"
+                            ></countdown>
                           </button>
 
                           <button
                             *ngIf="t.origin !== 'system'"
                             type="button"
                             class="icon-btn"
-                            (click)="editTask(c.id, t.id)"
+                            (click)="editTask(v.character.id, t.id)"
                           >
                             <img src="/icons/edit.png" alt="edit" />
                           </button>
 
-                          <!-- USER: exclui -->
                           <button
-                            *ngIf="t.origin !== 'system'; else archiveBtnDone"
+                            *ngIf="t.origin !== 'system'; else archiveBtnOpen"
                             type="button"
                             class="icon-btn"
-                            (click)="openDeleteTaskModal(c.id, t.id)"
+                            (click)="openDeleteTaskModal(v.character.id, t.id)"
                             title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
                           >
                             <img src="/icons/delete.png" alt="delete" />
                           </button>
 
-                          <!-- SYSTEM: arquiva -->
-                          <ng-template #archiveBtnDone>
+                          <ng-template #archiveBtnOpen>
                             <button
                               type="button"
                               class="icon-btn"
-                              (click)="archiveTask(c.id, t.id)"
+                              (click)="archiveTask(v.character.id, t.id)"
                               title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
                             >
                               <img src="/icons/arquivar.png" alt="arquivar" />
@@ -161,85 +239,9 @@
                       </div>
                     </div>
                   </div>
-                </section>
 
-                <!-- TASKS ABERTAS do período -->
-                <div
-                  class="task-drop"
-                  cdkDropList
-                  [cdkDropListData]="openTasksOf(c, p)"
-                  (cdkDropListDropped)="onDropOpen($event, c.id, p)"
-                >
-                  <div
-                    class="task"
-                    *ngFor="let t of openTasksOf(c, p); trackBy: trackByTaskId"
-                    cdkDrag
-                  >
-                    <div class="task-row" [class.done]="isDoneNow(t)" [class.doing]="isDoingNow(t)">
-                      <div class="task-title" [title]="t.title">{{ t.title }}</div>
-
-                      <div class="task-actions">
-                        <button
-                          type="button"
-                          class="icon-btn check-btn"
-                          [class.on]="isDoneNow(t)"
-                          (click)="toggleDone(c.id, t.id)"
-                        >
-                          <span class="check-icon" aria-hidden="true"></span>
-                        </button>
-
-                        <button
-                          type="button"
-                          class="icon-btn focus-btn"
-                          (click)="startFocusCooldown(c.id, t)"
-                          [disabled]="isDoneNow(t) || isFocusCoolingDown(t.id)"
-                          title="O modo Foco deve ser utilizado para te ajudar a lembrar dos seus objetivos."
-                        >
-                          <img src="/icons/focus.png" alt="doing" />
-
-                          <countdown
-                            *ngIf="isFocusCoolingDown(t.id)"
-                            class="focus-badge"
-                            [config]="focusConfig(t.id)"
-                            (event)="onFocusCountdownEvent($event, c.id, t)"
-                          ></countdown>
-                        </button>
-
-                        <button
-                          *ngIf="t.origin !== 'system'"
-                          type="button"
-                          class="icon-btn"
-                          (click)="editTask(c.id, t.id)"
-                        >
-                          <img src="/icons/edit.png" alt="edit" />
-                        </button>
-
-                        <button
-                          *ngIf="t.origin !== 'system'; else archiveBtnOpen"
-                          type="button"
-                          class="icon-btn"
-                          (click)="openDeleteTaskModal(c.id, t.id)"
-                          title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
-                        >
-                          <img src="/icons/delete.png" alt="delete" />
-                        </button>
-
-                        <ng-template #archiveBtnOpen>
-                          <button
-                            type="button"
-                            class="icon-btn"
-                            (click)="archiveTask(c.id, t.id)"
-                            title="As missões padrões do sistema só poderão ser arquivadas. Já as missões criadas pelo usuário poderão ser Editadas e/ou Excluídas da forma que desejar."
-                          >
-                            <img src="/icons/arquivar.png" alt="arquivar" />
-                          </button>
-                        </ng-template>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="muted" *ngIf="openTasksOf(c, p).length === 0">Sem tasks.</div>
+                  <div class="muted" *ngIf="pv.open.length === 0">Sem tasks.</div>
+                </ng-container>
               </div>
             </div>
           </article>
@@ -258,8 +260,7 @@
   <div class="confirm-card">
     <div class="confirm-title">Pergunta rápida</div>
     <div class="confirm-text">
-      Você conseguiu concluir a task <strong>{{ focusPromptTaskTitle }}</strong
-      >?
+      Você conseguiu concluir a task <strong>{{ focusPromptTaskTitle }}</strong>?
     </div>
 
     <div class="confirm-actions">
@@ -273,7 +274,7 @@
 
 <ng-template #loading>
   <div class="dailies-page">
-    <div class="bg" [style.background-image]="bgStyle()"></div>
+    <div class="bg" [style.background-image]="bgStyleStr"></div>
     <main class="shell">
       <section class="glass floating">
         <div class="glass-inner">Carregando...</div>
@@ -292,7 +293,7 @@
     </div>
 
     <div class="archived-list" *ngIf="archivedTasksOfActive().length">
-      <div class="archived-item" *ngFor="let t of archivedTasksOfActive()">
+      <div class="archived-item" *ngFor="let t of archivedTasksOfActive(); trackBy: trackByTaskId">
         <div class="archived-left">
           <div class="archived-name" [title]="t.title">{{ t.title }}</div>
           <div class="archived-meta">{{ periodLabel(t.period) }}</div>

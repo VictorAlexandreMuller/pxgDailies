@@ -1,19 +1,42 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  NgZone,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { CountdownComponent, CountdownEvent } from 'ngx-countdown';
 import { DateTime } from 'luxon';
+import { DragDropModule } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+
 import { PxgStoreService } from '../core/services/pxg-store.service';
-import { clearActiveUser, getActiveUser, saveDb } from '../core/data/storage';
+import { clearActiveUser, getActiveUser } from '../core/data/storage';
 import { DEFAULT_TASK_SIGNATURES, defaultTasks } from '../core/data/default-tasks';
 import { currentKey } from '../core/utils/period-keys';
 import { Character, PxgDbV1, Task, Period } from '../core/models/pxg-db.model';
-import { DragDropModule } from '@angular/cdk/drag-drop';
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { PxgExportV1 } from '../core/models/pxg-export.model';
 import { ModalExcluirComponent } from '../modals/modal-excluir.component/modal-excluir.component';
+
+type PeriodVm = {
+  open: Task[];
+  done: Task[];
+  total: number;
+  doneCount: number;
+  allDone: boolean;
+};
+
+type ActiveVm = {
+  character: Character;
+  byPeriod: Record<Period, PeriodVm>;
+  archived: Task[];
+};
 
 @Component({
   selector: 'app-dailies',
@@ -23,13 +46,19 @@ import { ModalExcluirComponent } from '../modals/modal-excluir.component/modal-e
   styleUrl: './dailies.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DailiesComponent implements OnDestroy {
+export class DailiesComponent {
+  // ===== DI (inject para permitir usar em field initializers) =====
+  private readonly router = inject(Router);
+  private readonly store = inject(PxgStoreService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly zone = inject(NgZone);
+
+  // ===== UI state básico =====
   displayName = '';
   syncCode = '';
-  db: PxgDbV1 | null = null;
   archivedModalOpen = false;
   newCharacterName = '';
-  activeCharacterId: string | null = null;
+
   deleteModalOpen = false;
   deleteModalTitle = 'Confirmar exclusão';
   deleteModalMessage = 'Você realmente deseja excluir este item?';
@@ -47,7 +76,8 @@ export class DailiesComponent implements OnDestroy {
     monthly: false,
   };
 
-  readonly FOCUS_SECONDS = 60 * 60;
+  // ===== Focus =====
+  readonly FOCUS_SECONDS = 60 * 60; // 1h
   private focusConfigs = new Map<string, any>();
   private focusCooling = new Set<string>();
 
@@ -56,11 +86,12 @@ export class DailiesComponent implements OnDestroy {
   private focusPromptCharacterId: string | null = null;
   private focusPromptTaskId: string | null = null;
 
+  // ===== Reset rules =====
   private readonly TZ = 'America/Sao_Paulo';
   private readonly RESET_HOUR = 7;
   private readonly RESET_MINUTE = 40;
-  private resetTicker: ReturnType<typeof setInterval> | null = null;
 
+  // ===== Wallpapers =====
   readonly wallpapers: Array<{ key: string; label: string; file: string }> = [
     { key: 'rayquaza', label: 'Rayquaza', file: '/images/rayquaza.png' },
     { key: 'johto', label: 'Johto', file: '/images/johto.jpg' },
@@ -94,12 +125,65 @@ export class DailiesComponent implements OnDestroy {
   ];
 
   selectedWallpaperKey = 'rayquaza';
+  bgStyleStr = `url('/images/rayquaza.png')`;
 
-  constructor(
-    private readonly router: Router,
-    private readonly store: PxgStoreService,
-    private readonly destroyRef: DestroyRef
-  ) {
+  // ===== Signals / VM =====
+  private readonly dbSig = toSignal(this.store.dbObs, { initialValue: null as PxgDbV1 | null });
+  private readonly activeCharacterIdSig = signal<string | null>(null);
+
+  // “now” só precisa mudar em baixa frequência (1 min) para reset de done.
+  private readonly nowMsSig = signal<number>(Date.now());
+
+  readonly activeCharacter = computed<Character | null>(() => {
+    const db = this.dbSig();
+    const id = this.activeCharacterIdSig();
+    if (!db || !id) return null;
+    return db.characters.find((c) => c.id === id) ?? null;
+  });
+
+  readonly vm = computed<ActiveVm | null>(() => {
+    const c = this.activeCharacter();
+    if (!c) return null;
+
+    const nowMs = this.nowMsSig();
+
+    const byPeriod: Record<Period, PeriodVm> = {
+      daily: { open: [], done: [], total: 0, doneCount: 0, allDone: false },
+      weekly: { open: [], done: [], total: 0, doneCount: 0, allDone: false },
+      monthly: { open: [], done: [], total: 0, doneCount: 0, allDone: false },
+    };
+
+    const archived: Task[] = [];
+
+    for (const t of c.tasks) {
+      if (t.archivedAt) {
+        archived.push(t);
+        continue;
+      }
+
+      const pv = byPeriod[t.period];
+      pv.total++;
+
+      const done = isDoneFast(t.resetAt, nowMs);
+      if (done) {
+        pv.done.push(t);
+        pv.doneCount++;
+      } else {
+        pv.open.push(t);
+      }
+    }
+
+    for (const p of this.periods) {
+      const pv = byPeriod[p];
+      pv.allDone = pv.total > 0 && pv.doneCount === pv.total;
+    }
+
+    archived.sort((a, b) => (b.archivedAt ?? '').localeCompare(a.archivedAt ?? ''));
+
+    return { character: c, byPeriod, archived };
+  });
+
+  constructor() {
     const active = getActiveUser();
     if (!active) {
       this.router.navigateByUrl('/enter');
@@ -108,7 +192,9 @@ export class DailiesComponent implements OnDestroy {
 
     this.displayName = active.name;
     this.syncCode = active.syncCode;
+
     this.loadWallpaperPreference();
+    this.recomputeBgStyle();
 
     const loaded = this.store.load(this.displayName, this.syncCode);
     if (!loaded) {
@@ -116,42 +202,47 @@ export class DailiesComponent implements OnDestroy {
       return;
     }
 
+    // Ajusta activeCharacterId quando db chega / muda
     this.store.dbObs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((db) => {
-      this.db = db;
+      if (!db) return; // <-- CORRIGE erro 2 (null)
 
-      if (db?.characters?.length) {
-        const exists = this.activeCharacterId
-          ? db.characters.some((c) => c.id === this.activeCharacterId)
-          : false;
-
-        if (!exists) this.activeCharacterId = db.characters[0].id;
+      if (db.characters?.length) {
+        const current = this.activeCharacterIdSig();
+        const exists = current ? db.characters.some((c) => c.id === current) : false;
+        if (!exists) this.activeCharacterIdSig.set(db.characters[0].id);
       } else {
-        this.activeCharacterId = null;
+        this.activeCharacterIdSig.set(null);
       }
 
-      this.migrateTaskOriginsIfNeeded();
-      this.applyResetsIfNeeded();
+      this.migrateTaskOriginsIfNeeded(db);
+      this.applyResetsIfNeeded(db);
     });
 
-    this.resetTicker = setInterval(() => {
-      this.applyResetsIfNeeded();
-    }, 60_000);
+    // Timer de reset fora do Angular (evita CD desnecessário em cascata)
+    this.zone.runOutsideAngular(() => {
+      const id = window.setInterval(() => {
+        this.zone.run(() => {
+          this.nowMsSig.set(Date.now());
+          const db = this.dbSig();
+          if (db) this.applyResetsIfNeeded(db); // <-- CORRIGE erro 2 (null)
+        });
+      }, 60_000);
+
+      this.destroyRef.onDestroy(() => window.clearInterval(id));
+    });
   }
 
-  ngOnDestroy(): void {
-    if (this.resetTicker) {
-      clearInterval(this.resetTicker);
-      this.resetTicker = null;
-    }
+  // ===== Template helpers =====
+  get db(): PxgDbV1 | null {
+    return this.dbSig();
   }
 
-  get activeCharacter(): Character | null {
-    if (!this.db || !this.activeCharacterId) return null;
-    return this.db.characters.find((c) => c.id === this.activeCharacterId) ?? null;
+  get activeCharacterId(): string | null {
+    return this.activeCharacterIdSig();
   }
 
   selectCharacter(id: string): void {
-    this.activeCharacterId = id;
+    this.activeCharacterIdSig.set(id);
     this.donePanelOpen = { daily: false, weekly: false, monthly: false };
   }
 
@@ -161,33 +252,38 @@ export class DailiesComponent implements OnDestroy {
     return 'Mensais';
   }
 
-  tasksOf(character: Character, period: Period): Task[] {
-    return character.tasks.filter((t) => t.period === period && !t.archivedAt);
-  }
-
-  isDoneNow(task: Task): boolean {
-    if (!task.resetAt) return false;
-
-    const now = DateTime.now().setZone(this.TZ);
-    const resetAt = DateTime.fromISO(task.resetAt, { zone: this.TZ });
-
-    return resetAt.isValid ? now < resetAt : false;
-  }
-
   isDoingNow(task: Task): boolean {
     return task.doingForKey === currentKey(task.period);
   }
 
-  doneTasksOfPeriod(character: Character, period: Period): Task[] {
-    return character.tasks.filter((t) => t.period === period && !t.archivedAt && this.isDoneNow(t));
+  isFocusCoolingDown(taskId: string): boolean {
+    return this.focusCooling.has(taskId);
   }
 
-  openTasksOf(character: Character, period: Period): Task[] {
-    return character.tasks.filter(
-      (t) => t.period === period && !t.archivedAt && !this.isDoneNow(t)
-    );
+  focusConfig(taskId: string): any {
+    let cfg = this.focusConfigs.get(taskId);
+    if (!cfg) {
+      cfg = { leftTime: this.FOCUS_SECONDS, format: 'HH:mm:ss' };
+      this.focusConfigs.set(taskId, cfg);
+    }
+    return cfg;
   }
 
+  toggleDonePanel(period: Period): void {
+    this.donePanelOpen[period] = !this.donePanelOpen[period];
+  }
+
+  noDoneMessage(period: Period): string {
+    if (period === 'daily') return 'Não há Tasks Diárias concluídas.';
+    if (period === 'weekly') return 'Não há Tasks Semanais concluídas.';
+    return 'Não há Tasks Mensais concluídas.';
+  }
+
+  canRename(task: Task): boolean {
+    return task.origin === 'user';
+  }
+
+  // ===== Actions =====
   addCharacter(): void {
     const name = this.newCharacterName.trim();
     if (!name) return;
@@ -198,31 +294,19 @@ export class DailiesComponent implements OnDestroy {
       ...db,
       characters: [
         ...db.characters,
-        {
-          id: newId,
-          name,
-          createdAt: new Date().toISOString(),
-          tasks: defaultTasks(),
-        },
+        { id: newId, name, createdAt: new Date().toISOString(), tasks: defaultTasks() },
       ],
     }));
 
-    this.activeCharacterId = newId;
+    this.activeCharacterIdSig.set(newId);
     this.newCharacterName = '';
   }
 
-  removeCharacter(characterId: string): void {
-    this.openDeleteCharacterModal(characterId);
-  }
-
   exportJsonDownload(): void {
-    if (!this.db) return;
+    const db = this.dbSig();
+    if (!db) return;
 
-    const payload: PxgExportV1 = {
-      exportVersion: 1,
-      syncCode: this.syncCode,
-      db: this.db,
-    };
+    const payload: PxgExportV1 = { exportVersion: 1, syncCode: this.syncCode, db };
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -237,8 +321,9 @@ export class DailiesComponent implements OnDestroy {
   }
 
   async exportJsonClipboard(): Promise<void> {
-    if (!this.db) return;
-    await navigator.clipboard.writeText(JSON.stringify(this.db, null, 2));
+    const db = this.dbSig();
+    if (!db) return;
+    await navigator.clipboard.writeText(JSON.stringify(db, null, 2));
     alert('JSON copiado para a área de transferência.');
   }
 
@@ -253,20 +338,19 @@ export class DailiesComponent implements OnDestroy {
 
     this.store.update((db) => ({
       ...db,
-      characters: db.characters.map((c) => {
-        if (c.id !== characterId) return c;
-        return {
-          ...c,
-          tasks: [...c.tasks, { id: crypto.randomUUID(), title, period, origin: 'user' }],
-        };
-      }),
+      characters: db.characters.map((c) =>
+        c.id !== characterId
+          ? c
+          : { ...c, tasks: [...c.tasks, { id: crypto.randomUUID(), title, period, origin: 'user' }] }
+      ),
     }));
   }
 
   editTask(characterId: string, taskId: string): void {
-    if (!this.db) return;
+    const db = this.dbSig();
+    if (!db) return;
 
-    const character = this.db.characters.find((c) => c.id === characterId);
+    const character = db.characters.find((c) => c.id === characterId);
     const task = character?.tasks.find((t) => t.id === taskId);
     if (!task) return;
 
@@ -275,26 +359,15 @@ export class DailiesComponent implements OnDestroy {
       return;
     }
 
-    const newTitle = prompt('Novo nome da task:');
+    const newTitle = prompt('Novo nome da task:')?.trim();
     if (!newTitle) return;
 
-    const title = newTitle.trim();
-    if (!title) return;
-
-    this.store.update((db) => ({
-      ...db,
-      characters: db.characters.map((c) => {
-        if (c.id !== characterId) return c;
-        return {
-          ...c,
-          tasks: c.tasks.map((t) => (t.id === taskId ? { ...t, title } : t)),
-        };
-      }),
+    this.store.update((db2) => ({
+      ...db2,
+      characters: db2.characters.map((c) =>
+        c.id !== characterId ? c : { ...c, tasks: c.tasks.map((t) => (t.id === taskId ? { ...t, title: newTitle } : t)) }
+      ),
     }));
-  }
-
-  deleteTask(characterId: string, taskId: string): void {
-    this.openDeleteTaskModal(characterId, taskId);
   }
 
   toggleDone(characterId: string, taskId: string): void {
@@ -312,29 +385,20 @@ export class DailiesComponent implements OnDestroy {
           tasks: c.tasks.map((t) => {
             if (t.id !== taskId) return t;
 
-            const currentlyDone = this.isDoneNow(t);
+            const currentlyDone = isDoneFast(t.resetAt, Date.now());
 
             if (currentlyDone) {
-              return {
-                ...t,
-                doneForKey: undefined,
-                doingForKey: undefined,
-                doneAt: undefined,
-                resetAt: undefined,
-              };
+              return { ...t, doneForKey: undefined, doingForKey: undefined, doneAt: undefined, resetAt: undefined };
             }
 
             const resetAtDt = this.computeResetAt(t, now);
-
-            const doneAtIso = now.toISO() ?? undefined;
-            const resetAtIso = resetAtDt.toISO() ?? undefined;
 
             return {
               ...t,
               doneForKey: currentKey(t.period),
               doingForKey: undefined,
-              doneAt: doneAtIso,
-              resetAt: resetAtIso,
+              doneAt: now.toISO() ?? undefined,
+              resetAt: resetAtDt.toISO() ?? undefined,
             };
           }),
         };
@@ -342,26 +406,9 @@ export class DailiesComponent implements OnDestroy {
     }));
   }
 
-  toggleDonePanel(period: Period): void {
-    this.donePanelOpen[period] = !this.donePanelOpen[period];
-  }
-
-  isFocusCoolingDown(taskId: string): boolean {
-    return this.focusCooling.has(taskId);
-  }
-
-  focusConfig(taskId: string): any {
-    let cfg = this.focusConfigs.get(taskId);
-    if (!cfg) {
-      cfg = { leftTime: this.FOCUS_SECONDS, format: 'HH:mm:ss' };
-      this.focusConfigs.set(taskId, cfg);
-    }
-    return cfg;
-  }
-
   startFocusCooldown(characterId: string, task: Task): void {
-    if (this.isDoneNow(task)) return;
-    if (this.isFocusCoolingDown(task.id)) return;
+    if (isDoneFast(task.resetAt, Date.now())) return;
+    if (this.focusCooling.has(task.id)) return;
 
     this.setDoingOn(characterId, task.id);
 
@@ -372,7 +419,7 @@ export class DailiesComponent implements OnDestroy {
   onFocusCountdownEvent(e: CountdownEvent, characterId: string, task: Task): void {
     if (e.action !== 'done') return;
 
-    if (this.isDoneNow(task)) {
+    if (isDoneFast(task.resetAt, Date.now())) {
       this.cancelFocus(task.id);
       return;
     }
@@ -396,188 +443,8 @@ export class DailiesComponent implements OnDestroy {
 
     if (!characterId || !taskId) return;
 
-    if (didFinish) {
-      this.toggleDone(characterId, taskId);
-    } else {
-      this.setDoingOff(characterId, taskId);
-    }
-  }
-
-  private setDoingOn(characterId: string, taskId: string): void {
-    this.store.update((db) => ({
-      ...db,
-      characters: db.characters.map((c) => {
-        if (c.id !== characterId) return c;
-
-        return {
-          ...c,
-          tasks: c.tasks.map((t) => {
-            if (t.id !== taskId) return t;
-            const key = currentKey(t.period);
-            return { ...t, doingForKey: key };
-          }),
-        };
-      }),
-    }));
-  }
-
-  private setDoingOff(characterId: string, taskId: string): void {
-    this.store.update((db) => ({
-      ...db,
-      characters: db.characters.map((c) => {
-        if (c.id !== characterId) return c;
-
-        return {
-          ...c,
-          tasks: c.tasks.map((t) => (t.id === taskId ? { ...t, doingForKey: undefined } : t)),
-        };
-      }),
-    }));
-  }
-
-  noDoneMessage(period: Period): string {
-    if (period === 'daily') return 'Não há Tasks Diárias concluídas.';
-    if (period === 'weekly') return 'Não há Tasks Semanais concluídas.';
-    return 'Não há Tasks Mensais concluídas.';
-  }
-
-  private cancelFocus(taskId: string): void {
-    this.focusCooling.delete(taskId);
-    this.focusConfigs.delete(taskId);
-
-    if (this.focusPromptOpen && this.focusPromptTaskId === taskId) {
-      this.focusPromptOpen = false;
-      this.focusPromptTaskTitle = '';
-      this.focusPromptCharacterId = null;
-      this.focusPromptTaskId = null;
-    }
-  }
-
-  private applyResetsIfNeeded(): void {
-    if (!this.db) return;
-
-    const now = DateTime.now().setZone(this.TZ);
-
-    let changed = false;
-
-    const nextCharacters = this.db.characters.map((c) => {
-      const nextTasks = c.tasks.map((t) => {
-        if (!t.resetAt) return t;
-
-        const resetAt = DateTime.fromISO(t.resetAt, { zone: this.TZ });
-
-        if (!resetAt.isValid) {
-          changed = true;
-          return {
-            ...t,
-            doneForKey: undefined,
-            doingForKey: undefined,
-            doneAt: undefined,
-            resetAt: undefined,
-          };
-        }
-
-        if (now >= resetAt) {
-          changed = true;
-          return {
-            ...t,
-            doneForKey: undefined,
-            doingForKey: undefined,
-            doneAt: undefined,
-            resetAt: undefined,
-          };
-        }
-
-        return t;
-      });
-
-      return { ...c, tasks: nextTasks };
-    });
-
-    if (changed) {
-      this.store.update((db) => ({
-        ...db,
-        characters: nextCharacters,
-      }));
-    }
-  }
-
-  private computeResetAt(task: Task, nowBrt: DateTime): DateTime {
-    if (task.period === 'daily') {
-      return nowBrt
-        .plus({ days: 1 })
-        .set({ hour: this.RESET_HOUR, minute: this.RESET_MINUTE, second: 0, millisecond: 0 });
-    }
-
-    if (task.period === 'weekly') {
-      const nextWeekStart = nowBrt.plus({ weeks: 1 }).startOf('week');
-      return nextWeekStart.set({
-        hour: this.RESET_HOUR,
-        minute: this.RESET_MINUTE,
-        second: 0,
-        millisecond: 0,
-      });
-    }
-
-    const title = (task.title ?? '').trim().toLowerCase();
-    if (title === 'clones') {
-      return nowBrt.plus({ days: 30 });
-    }
-
-    return nowBrt
-      .plus({ months: 1 })
-      .startOf('month')
-      .set({ hour: this.RESET_HOUR, minute: this.RESET_MINUTE, second: 0, millisecond: 0 });
-  }
-
-  canRename(task: Task): boolean {
-    return task.origin === 'user';
-  }
-
-  private migrateTaskOriginsIfNeeded(): void {
-    if (!this.db) return;
-
-    const signatureSet = new Set(
-      DEFAULT_TASK_SIGNATURES.map(([period, title]) => `${period}::${title.trim().toLowerCase()}`)
-    );
-
-    let changed = false;
-
-    const nextCharacters = this.db.characters.map((c) => {
-      const nextTasks = c.tasks.map((t) => {
-        if (t.origin) return t;
-
-        const sig = `${t.period}::${(t.title ?? '').trim().toLowerCase()}`;
-        const origin: Task['origin'] = signatureSet.has(sig) ? 'system' : 'user';
-
-        changed = true;
-
-        return { ...t, origin };
-      });
-
-      return { ...c, tasks: nextTasks };
-    });
-
-    if (changed) {
-      this.store.update((db) => ({
-        ...db,
-        characters: nextCharacters,
-      }));
-    }
-  }
-
-  hasArchivedForActive(): boolean {
-    const c = this.activeCharacter;
-    if (!c) return false;
-    return c.tasks.some((t) => !!t.archivedAt);
-  }
-
-  archivedTasksOfActive(): Task[] {
-    const c = this.activeCharacter;
-    if (!c) return [];
-    return [...c.tasks]
-      .filter((t) => !!t.archivedAt)
-      .sort((a, b) => (b.archivedAt ?? '').localeCompare(a.archivedAt ?? ''));
+    if (didFinish) this.toggleDone(characterId, taskId);
+    else this.setDoingOff(characterId, taskId);
   }
 
   archiveTask(characterId: string, taskId: string): void {
@@ -585,91 +452,62 @@ export class DailiesComponent implements OnDestroy {
     if (!ok) return;
 
     const nowIso = new Date().toISOString();
-
     this.cancelFocus(taskId);
 
     this.store.update((db) => ({
       ...db,
-      characters: db.characters.map((c) => {
-        if (c.id !== characterId) return c;
-
-        return {
-          ...c,
-          tasks: c.tasks.map((t) => {
-            if (t.id !== taskId) return t;
-
-            return {
-              ...t,
-              archivedAt: nowIso,
-              doneForKey: undefined,
-              doingForKey: undefined,
-              doneAt: undefined,
-              resetAt: undefined,
-            };
-          }),
-        };
-      }),
+      characters: db.characters.map((c) =>
+        c.id !== characterId
+          ? c
+          : {
+              ...c,
+              tasks: c.tasks.map((t) =>
+                t.id !== taskId
+                  ? t
+                  : {
+                      ...t,
+                      archivedAt: nowIso,
+                      doneForKey: undefined,
+                      doingForKey: undefined,
+                      doneAt: undefined,
+                      resetAt: undefined,
+                    }
+              ),
+            }
+      ),
     }));
   }
 
   restoreArchivedTask(characterId: string, taskId: string): void {
     this.store.update((db) => ({
       ...db,
-      characters: db.characters.map((c) => {
-        if (c.id !== characterId) return c;
-
-        return {
-          ...c,
-          tasks: c.tasks.map((t) => (t.id === taskId ? { ...t, archivedAt: undefined } : t)),
-        };
-      }),
+      characters: db.characters.map((c) =>
+        c.id !== characterId
+          ? c
+          : { ...c, tasks: c.tasks.map((t) => (t.id === taskId ? { ...t, archivedAt: undefined } : t)) }
+      ),
     }));
 
     this.archivedModalOpen = false;
   }
 
-  allDoneForPeriod(character: Character, period: Period): boolean {
-    const total = this.tasksOf(character, period).length;
-    if (total === 0) return false;
-
-    const done = this.doneTasksOfPeriod(character, period).length;
-    return done === total;
-  }
-
   onDropOpen(event: CdkDragDrop<Task[]>, characterId: string, period: Period): void {
     if (event.previousIndex === event.currentIndex) return;
-
     const list = [...event.container.data];
     moveItemInArray(list, event.previousIndex, event.currentIndex);
-
-    this.applyReorder(
-      characterId,
-      period,
-      list.map((t) => t.id),
-      'open'
-    );
+    this.applyReorder(characterId, period, list.map((t) => t.id), 'open');
   }
 
   onDropDone(event: CdkDragDrop<Task[]>, characterId: string, period: Period): void {
     if (event.previousIndex === event.currentIndex) return;
-
     const list = [...event.container.data];
     moveItemInArray(list, event.previousIndex, event.currentIndex);
-
-    this.applyReorder(
-      characterId,
-      period,
-      list.map((t) => t.id),
-      'done'
-    );
+    this.applyReorder(characterId, period, list.map((t) => t.id), 'done');
   }
 
-  private applyReorder(
-    characterId: string,
-    period: Period,
-    orderedIds: string[],
-    which: 'open' | 'done'
-  ): void {
+  private applyReorder(characterId: string, period: Period, orderedIds: string[], which: 'open' | 'done'): void {
+    const nowMs = Date.now();
+
     this.store.update((db) => ({
       ...db,
       characters: db.characters.map((c) => {
@@ -681,13 +519,11 @@ export class DailiesComponent implements OnDestroy {
 
         for (let i = 0; i < original.length; i++) {
           const t = original[i];
-
           if (t.period !== period) continue;
           if (t.archivedAt) continue;
 
-          const isDone = this.isDoneNow(t);
-          const matches = which === 'done' ? isDone : !isDone;
-
+          const done = isDoneFast(t.resetAt, nowMs);
+          const matches = which === 'done' ? done : !done;
           if (!matches) continue;
 
           positions.push(i);
@@ -697,21 +533,18 @@ export class DailiesComponent implements OnDestroy {
         if (group.length <= 1) return c;
 
         const byId = new Map(group.map((t) => [t.id, t]));
-
         const reordered: Task[] = [];
+
         for (const id of orderedIds) {
           const found = byId.get(id);
           if (found) reordered.push(found);
         }
-
         for (const t of group) {
           if (!reordered.some((x) => x.id === t.id)) reordered.push(t);
         }
 
         const next = [...original];
-        for (let k = 0; k < positions.length; k++) {
-          next[positions[k]] = reordered[k];
-        }
+        for (let k = 0; k < positions.length; k++) next[positions[k]] = reordered[k];
 
         return { ...c, tasks: next };
       }),
@@ -723,9 +556,10 @@ export class DailiesComponent implements OnDestroy {
   }
 
   openDeleteCharacterModal(characterId: string): void {
-    if (!this.db) return;
+    const db = this.dbSig();
+    if (!db) return;
 
-    const ch = this.db.characters.find((c) => c.id === characterId);
+    const ch = db.characters.find((c) => c.id === characterId);
     if (!ch) return;
 
     this.deleteAction = 'character';
@@ -741,9 +575,10 @@ export class DailiesComponent implements OnDestroy {
   }
 
   openDeleteTaskModal(characterId: string, taskId: string): void {
-    if (!this.db) return;
+    const db = this.dbSig();
+    if (!db) return;
 
-    const ch = this.db.characters.find((c) => c.id === characterId);
+    const ch = db.characters.find((c) => c.id === characterId);
     const task = ch?.tasks.find((t) => t.id === taskId);
     if (!ch || !task) return;
 
@@ -765,11 +600,9 @@ export class DailiesComponent implements OnDestroy {
 
   closeDeleteModal(): void {
     this.deleteModalOpen = false;
-
     this.deleteAction = null;
     this.deleteCharacterId = null;
     this.deleteTaskId = null;
-
     this.deleteModalItemLabel = '';
   }
 
@@ -781,40 +614,24 @@ export class DailiesComponent implements OnDestroy {
 
     if (this.deleteAction === 'character') {
       const characterId = this.deleteCharacterId;
-      if (!characterId) {
-        this.closeDeleteModal();
-        return;
-      }
+      if (!characterId) return this.closeDeleteModal();
 
-      this.store.update((db) => ({
-        ...db,
-        characters: db.characters.filter((c) => c.id !== characterId),
-      }));
+      this.store.update((db) => ({ ...db, characters: db.characters.filter((c) => c.id !== characterId) }));
 
-      if (this.activeCharacterId === characterId) {
-        this.activeCharacterId = null;
-      }
+      if (this.activeCharacterIdSig() === characterId) this.activeCharacterIdSig.set(null);
 
-      this.closeDeleteModal();
-      return;
+      return this.closeDeleteModal();
     }
 
     const characterId = this.deleteCharacterId;
     const taskId = this.deleteTaskId;
-
-    if (!characterId || !taskId) {
-      this.closeDeleteModal();
-      return;
-    }
+    if (!characterId || !taskId) return this.closeDeleteModal();
 
     this.cancelFocus(taskId);
 
     this.store.update((db) => ({
       ...db,
-      characters: db.characters.map((c) => {
-        if (c.id !== characterId) return c;
-        return { ...c, tasks: c.tasks.filter((t) => t.id !== taskId) };
-      }),
+      characters: db.characters.map((c) => (c.id !== characterId ? c : { ...c, tasks: c.tasks.filter((t) => t.id !== taskId) })),
     }));
 
     this.closeDeleteModal();
@@ -832,11 +649,139 @@ export class DailiesComponent implements OnDestroy {
 
   onWallpaperChange(): void {
     localStorage.setItem(this.wallpaperStorageKey(), this.selectedWallpaperKey);
+    this.recomputeBgStyle();
   }
 
-  bgStyle(): string {
+  private recomputeBgStyle(): void {
     const found = this.wallpapers.find((w) => w.key === this.selectedWallpaperKey);
     const file = found?.file ?? '/images/rayquaza.png';
-    return `url('${file}')`;
+    this.bgStyleStr = `url('${file}')`;
   }
+
+  private cancelFocus(taskId: string): void {
+    this.focusCooling.delete(taskId);
+    this.focusConfigs.delete(taskId);
+
+    if (this.focusPromptOpen && this.focusPromptTaskId === taskId) {
+      this.focusPromptOpen = false;
+      this.focusPromptTaskTitle = '';
+      this.focusPromptCharacterId = null;
+      this.focusPromptTaskId = null;
+    }
+  }
+
+  private setDoingOn(characterId: string, taskId: string): void {
+    this.store.update((db) => ({
+      ...db,
+      characters: db.characters.map((c) =>
+        c.id !== characterId
+          ? c
+          : {
+              ...c,
+              tasks: c.tasks.map((t) => (t.id === taskId ? { ...t, doingForKey: currentKey(t.period) } : t)),
+            }
+      ),
+    }));
+  }
+
+  private setDoingOff(characterId: string, taskId: string): void {
+    this.store.update((db) => ({
+      ...db,
+      characters: db.characters.map((c) =>
+        c.id !== characterId
+          ? c
+          : { ...c, tasks: c.tasks.map((t) => (t.id === taskId ? { ...t, doingForKey: undefined } : t)) }
+      ),
+    }));
+  }
+
+  private applyResetsIfNeeded(db: PxgDbV1): void {
+    const nowMs = Date.now();
+    let changed = false;
+
+    const nextCharacters = db.characters.map((c) => {
+      const nextTasks = c.tasks.map((t) => {
+        if (!t.resetAt) return t;
+
+        const resetMs = Date.parse(t.resetAt);
+        if (!Number.isFinite(resetMs) || nowMs >= resetMs) {
+          changed = true;
+          return { ...t, doneForKey: undefined, doingForKey: undefined, doneAt: undefined, resetAt: undefined };
+        }
+
+        return t;
+      });
+
+      return { ...c, tasks: nextTasks };
+    });
+
+    if (changed) {
+      this.store.update((db2) => ({ ...db2, characters: nextCharacters }));
+    }
+  }
+
+  private computeResetAt(task: Task, nowBrt: DateTime): DateTime {
+    if (task.period === 'daily') {
+      return nowBrt
+        .plus({ days: 1 })
+        .set({ hour: this.RESET_HOUR, minute: this.RESET_MINUTE, second: 0, millisecond: 0 });
+    }
+
+    if (task.period === 'weekly') {
+      const nextWeekStart = nowBrt.plus({ weeks: 1 }).startOf('week');
+      return nextWeekStart.set({ hour: this.RESET_HOUR, minute: this.RESET_MINUTE, second: 0, millisecond: 0 });
+    }
+
+    const title = (task.title ?? '').trim().toLowerCase();
+    if (title === 'clones') return nowBrt.plus({ days: 30 });
+
+    return nowBrt
+      .plus({ months: 1 })
+      .startOf('month')
+      .set({ hour: this.RESET_HOUR, minute: this.RESET_MINUTE, second: 0, millisecond: 0 });
+  }
+
+  private migrateTaskOriginsIfNeeded(db: PxgDbV1): void {
+    const signatureSet = new Set(
+      DEFAULT_TASK_SIGNATURES.map(([period, title]) => `${period}::${title.trim().toLowerCase()}`)
+    );
+
+    let changed = false;
+
+    const nextCharacters = db.characters.map((c) => {
+      const nextTasks = c.tasks.map((t) => {
+        if (t.origin) return t;
+
+        const sig = `${t.period}::${(t.title ?? '').trim().toLowerCase()}`;
+        const origin: Task['origin'] = signatureSet.has(sig) ? 'system' : 'user';
+
+        changed = true;
+        return { ...t, origin };
+      });
+
+      return { ...c, tasks: nextTasks };
+    });
+
+    if (changed) {
+      this.store.update((db2) => ({ ...db2, characters: nextCharacters }));
+    }
+  }
+
+  hasArchivedForActive(): boolean {
+    const v = this.vm();
+    return !!v && v.archived.length > 0;
+  }
+
+  archivedTasksOfActive(): Task[] {
+    const v = this.vm();
+    return v ? v.archived : [];
+  }
+}
+
+// ===== util local (hot path) =====
+function isDoneFast(resetAtIso: string | undefined, nowMs: number): boolean {
+  if (!resetAtIso) return false;
+  const resetMs = Date.parse(resetAtIso);
+  if (!Number.isFinite(resetMs)) return false;
+  return nowMs < resetMs;
 }

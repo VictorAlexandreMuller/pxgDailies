@@ -22,14 +22,18 @@
   background-position: center;
   background-repeat: no-repeat;
 
-  filter: brightness(0.75) saturate(1.05);
+  filter: none;
+  pointer-events: none;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .bg::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.55));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.62));
+  pointer-events: none;
 }
 
 .shell {

@@ -6,7 +6,7 @@ function make(period: Task['period'], title: string): Task {
 
 // Exporta as assinaturas para migração (period + title)
 export const DEFAULT_TASK_SIGNATURES = [
-  ['daily', 'NW Falkner/Bruno/Lorelay'],
+  ['daily', 'NW Falkner/Bruno'],
   ['daily', 'NW Mite'],
   ['daily', 'NW Lance'],
   ['daily', 'NW T1H Cosmic'],
@@ -29,6 +29,7 @@ export const DEFAULT_TASK_SIGNATURES = [
   ['weekly', 'Cão Lendário'],
   ['weekly', 'Lavender Curse'],
   ['weekly', 'Shiny Giant Tentacruel'],
+  ['weekly', 'NW Lorelay'],
   ['weekly', 'NW Misty'],
   ['weekly', 'NW Barry'],
   ['weekly', 'NW Zedd'],
